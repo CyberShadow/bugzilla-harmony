@@ -1693,20 +1693,23 @@ sub psgi_builder {
   my ($self, $args) = @_;
   my $mount = $args->{mount};
 
-  my $ses_index = Plack::Builder::builder {
+  my $ses_index = Plack::Builder::builder(sub {
     my $auth_user = Bugzilla->localconfig->{ses_username};
     my $auth_pass = Bugzilla->localconfig->{ses_password};
-    Plack::Builder::enable "Auth::Basic", authenticator => sub {
-      my ($username, $password, $env) = @_;
-      return ($auth_user
-          && $auth_pass
-          && $username
-          && $password
-          && $username eq $auth_user
-          && $password eq $auth_pass);
-    };
+    Plack::Builder::enable(
+      "Auth::Basic",
+      authenticator => sub {
+        my ($username, $password, $env) = @_;
+        return ($auth_user
+            && $auth_pass
+            && $username
+            && $password
+            && $username eq $auth_user
+            && $password eq $auth_pass);
+      }
+    );
     compile_cgi("ses/index.cgi");
-  };
+  });
 
   $mount->{'ses/index.cgi'} = $ses_index;
 }
