@@ -12,19 +12,24 @@ use warnings;
 
 use base qw(Exporter);
 
+use Bugzilla::Logging;
+use CGI::Compile;
+use CGI::Emulate::PSGI;
+
 our @EXPORT_OK = qw(compile_cgi);
 
 sub compile_cgi {
   my ($script) = @_;
-  my $app = Plack::App::WrapCGI->new(script => $script)->to_app;
-
-  return sub {
-    my ($env) = @_;
+  my $cgi      = CGI::Compile->compile($script);
+  my $app      = CGI::Emulate::PSGI->handler(sub {
     Bugzilla::init_page();
+    $cgi->();
+  });
+  return sub {
+    my $env = shift;
     if ($env->{'psgix.cleanup'}) {
       push @{$env->{'psgix.cleanup.handler'}}, \&Bugzilla::_cleanup;
     }
-
     my $res = $app->($env);
     Bugzilla::_cleanup() if not $env->{'psgix.cleanup'};
     return $res;
