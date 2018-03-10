@@ -1384,6 +1384,18 @@ use constant ABSTRACT_SCHEMA => {
       isactive           => {TYPE => 'BOOLEAN',     NOTNULL => 1, DEFAULT => 1},
       defaultmilestone   => {TYPE => 'varchar(20)', NOTNULL => 1, DEFAULT => "'---'"},
       allows_unconfirmed => {TYPE => 'BOOLEAN',     NOTNULL => 1, DEFAULT => 'TRUE'},
+      default_op_sys_id => {
+        TYPE       => 'INT2',
+        REFERENCES => {TABLE => 'op_sys', COLUMN => 'id', DELETE => 'SET NULL'}
+      },
+      default_platform_id => {
+        TYPE       => 'INT2',
+        REFERENCES => {TABLE => 'rep_platform', COLUMN => 'id', DELETE => 'SET NULL'}
+      },
+      security_group_id => {
+        TYPE       => 'INT3',
+        REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'SET NULL'}
+      },
     ],
     INDEXES => [products_name_idx => {FIELDS => ['name'], TYPE => 'UNIQUE'},],
   },
