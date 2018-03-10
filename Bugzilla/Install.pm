@@ -19,6 +19,7 @@ use 5.10.1;
 use strict;
 use warnings;
 
+use Bugzilla::Logging;
 use Bugzilla::Component;
 use Bugzilla::Config qw(:admin);
 use Bugzilla::Constants;
@@ -404,6 +405,7 @@ sub init_workflow {
   };
 
   foreach my $pair (STATUS_WORKFLOW) {
+    WARN("unknown bug_status: " . $pair->[1]) unless $status_ids{$pair->[1]};
     my $old_id = $pair->[0] ? $status_ids{$pair->[0]} : undef;
     my $new_id = $status_ids{$pair->[1]};
     $dbh->do(
