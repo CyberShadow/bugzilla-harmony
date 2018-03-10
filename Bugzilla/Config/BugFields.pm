@@ -41,7 +41,7 @@ sub get_param_list {
       name    => 'defaultpriority',
       type    => 's',
       choices => \@legal_priorities,
-      default => $legal_priorities[-1],
+      default => $legal_priorities[0],
       checker => \&check_priority
     },
 
