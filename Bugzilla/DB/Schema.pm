@@ -1394,7 +1394,8 @@ use constant ABSTRACT_SCHEMA => {
       },
       security_group_id => {
         TYPE       => 'INT3',
-        REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'SET NULL'}
+        NOTNULL    => 1,
+        REFERENCES => {TABLE => 'groups', COLUMN => 'id'}
       },
     ],
     INDEXES => [products_name_idx => {FIELDS => ['name'], TYPE => 'UNIQUE'},],
