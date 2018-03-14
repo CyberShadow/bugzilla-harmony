@@ -1,0 +1,37 @@
+body.dlang {
+	background: #F5F5F5;
+}
+
+body.dlang #header {
+	background-color: #B03931;
+}
+body.dlang #header a {
+	color: white;
+}
+body.dlang #header a .icon,
+body.dlang #header button .icon {
+	color: #ccc;
+}
+body.dlang #header #quicksearch_top {
+	background-color: white;
+}
+
+body.dlang #header .inner {
+	padding: 5px;
+}
+
+body.dlang #header-external-links {
+	z-index: 0;
+}
+
+body.dlang #header .logo {
+	display: block;
+	margin-left: -100px;
+	margin-right: -100px;
+}
+
+body.dlang #header img#logo {
+	vertical-align: middle;
+	width: 227px;
+	height: 42px;
+}
