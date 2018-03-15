@@ -10,7 +10,7 @@ body.dlang #header a {
 }
 body.dlang #header a .icon,
 body.dlang #header button .icon {
-	color: #ccc;
+	color: white;
 }
 body.dlang #header #quicksearch_top {
 	background-color: white;
