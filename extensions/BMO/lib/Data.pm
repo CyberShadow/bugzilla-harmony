@@ -17,6 +17,7 @@ use Tie::IxHash;
 our @EXPORT = qw( $cf_visible_in_products
   %group_change_notification
   $cf_setters
+  @always_fileable_groups
   %group_auto_cc
   %create_bug_formats
   @default_named_queries
@@ -208,6 +209,29 @@ our %group_change_notification = (
 our $cf_setters
   = {'cf_colo_site' => ['infra', 'build'], 'cf_rank' => ['rank-setters'],};
 
+# Groups in which you can always file a bug, regardless of product or user.
+our @always_fileable_groups = qw(
+  addons-security
+  bugzilla-security
+  client-services-security
+  consulting
+  core-security
+  finance
+  infra
+  infrasec
+  l20n-security
+  marketing-private
+  mozilla-confidential
+  mozilla-employee-confidential
+  mozilla-foundation-confidential
+  mozilla-engagement
+  mozilla-messaging-confidential
+  partner-confidential
+  payments-confidential
+  tamarin-security
+  websites-security
+  webtools-security
+);
 
 # Automatically CC users to bugs filed into configured groups and products
 our %group_auto_cc = (
