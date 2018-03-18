@@ -1382,7 +1382,6 @@ sub _field_value {
         isactive => 1,
     });
 }
-
 sub _last_closed_date {
     my ($self) = @_;
     my $dbh = Bugzilla->dbh;

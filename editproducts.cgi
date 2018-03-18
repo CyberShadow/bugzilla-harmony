@@ -170,6 +170,7 @@ if ($action eq 'new') {
         default_op_sys_id   => scalar $cgi->param('default_op_sys_id'),
         security_group_id   => scalar $cgi->param('security_group_id'),
     );
+
     my $product = Bugzilla::Product->create(\%create_params);
 
     delete_token($token);
