@@ -850,6 +850,20 @@ sub is_active         { return $_[0]->{'isactive'};       }
 sub default_milestone { return $_[0]->{'defaultmilestone'};  }
 sub classification_id { return $_[0]->{'classification_id'}; }
 
+sub default_security_group {
+    my ($self) = @_;
+    return $self->default_security_group_obj->name;
+}
+
+sub default_security_group_obj {
+    my ($self) = @_;
+    my $group_id = $self->{security_group_id};
+    if (!$group_id) {
+        return Bugzilla::Group->new({ name => Bugzilla->params->{insidergroup}, cache => 1 });
+    }
+    return Bugzilla::Group->new({ id => $group_id, cache => 1 });
+}
+
 ###############################
 ####      Subroutines    ######
 ###############################

@@ -77,8 +77,6 @@ BEGIN {
     *Bugzilla::Bug::is_unassigned                   = \&_bug_is_unassigned;
     *Bugzilla::Bug::has_current_patch               = \&_bug_has_current_patch;
     *Bugzilla::Bug::missing_sec_approval            = \&_bug_missing_sec_approval;
-    *Bugzilla::Product::default_security_group      = \&_default_security_group;
-    *Bugzilla::Product::default_security_group_obj  = \&_default_security_group_obj;
     *Bugzilla::Product::group_always_settable       = \&_group_always_settable;
     *Bugzilla::Product::default_platform_id         = \&_product_default_platform_id;
     *Bugzilla::Product::default_op_sys_id           = \&_product_default_op_sys_id;
@@ -2479,18 +2477,6 @@ sub _group_always_settable {
     return
         $group->name eq $self->default_security_group
         || ((grep { $_ eq $group->name } @always_fileable_groups) ? 1 : 0);
-}
-
-sub _default_security_group {
-    return $_[0]->default_security_group_obj->name;
-}
-
-sub _default_security_group_obj {
-    my $group_id = $_[0]->{security_group_id};
-    if (!$group_id) {
-        return Bugzilla::Group->new({ name => Bugzilla->params->{insidergroup}, cache => 1 });
-    }
-    return Bugzilla::Group->new({ id => $group_id, cache => 1 });
 }
 
 # called from the verify version, component, and group page.
