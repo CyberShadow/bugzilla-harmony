@@ -802,19 +802,21 @@ sub data {
   # BMO - to avoid massive amounts of joins, if we're selecting a lot of
   # tracking flags, replace them with placeholders. the values will be
   # retrieved later and injected into the result.
-  my %tf_map = map { $_ => 1 } Bugzilla->tracking_flag_names;
-  my @tf_selected = grep { exists $tf_map{$_} } @orig_fields;
+  if (Bugzilla->has_extension('TrackingFlags')) {
+    my %tf_map = map { $_ => 1 } Bugzilla->tracking_flag_names;
+    my @tf_selected = grep { exists $tf_map{$_} } @orig_fields;
 
-  # MySQL has a limit of 61 joins, and we want to avoid massive amounts of joins
-  # 30 ensures we won't hit the limit, nor generate too many joins
-  if (scalar @tf_selected > 30) {
-    foreach my $column (@tf_selected) {
-      $self->COLUMNS->{$column}->{name} = "'---'";
+    # MySQL has a limit of 61 joins, and we want to avoid massive amounts of joins
+    # 30 ensures we won't hit the limit, nor generate too many joins
+    if (scalar @tf_selected > 30) {
+      foreach my $column (@tf_selected) {
+        $self->COLUMNS->{$column}->{name} = "'---'";
+      }
+      $self->{tracking_flags} = \@tf_selected;
     }
-    $self->{tracking_flags} = \@tf_selected;
-  }
-  else {
-    $self->{tracking_flags} = [];
+    else {
+      $self->{tracking_flags} = [];
+    }
   }
 
   my $start_time = [gettimeofday()];
@@ -869,7 +871,7 @@ sub data {
   $self->{data} = [map { $data{$_} } @$bug_ids];
 
   # BMO - get tracking flags values, and insert into result
-  if (@{$self->{tracking_flags}}) {
+  if (Bugzilla->has_extension('TrackingFlags') && @{$self->{tracking_flags}}) {
 
     # read values
     my $values;
