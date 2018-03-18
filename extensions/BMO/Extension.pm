@@ -77,7 +77,6 @@ BEGIN {
     *Bugzilla::Bug::is_unassigned                   = \&_bug_is_unassigned;
     *Bugzilla::Bug::has_current_patch               = \&_bug_has_current_patch;
     *Bugzilla::Bug::missing_sec_approval            = \&_bug_missing_sec_approval;
-    *Bugzilla::Product::group_always_settable       = \&_group_always_settable;
     *Bugzilla::Product::default_platform_id         = \&_product_default_platform_id;
     *Bugzilla::Product::default_op_sys_id           = \&_product_default_op_sys_id;
     *Bugzilla::Product::default_platform            = \&_product_default_platform;
@@ -2468,15 +2467,6 @@ sub query_database {
             exit;
         }
     }
-}
-
-# you can always file bugs into a product's default security group, as well as
-# into any of the groups in @always_fileable_groups
-sub _group_always_settable {
-    my ($self, $group) = @_;
-    return
-        $group->name eq $self->default_security_group
-        || ((grep { $_ eq $group->name } @always_fileable_groups) ? 1 : 0);
 }
 
 # called from the verify version, component, and group page.

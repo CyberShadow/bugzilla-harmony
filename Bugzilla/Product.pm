@@ -864,6 +864,16 @@ sub default_security_group_obj {
     return Bugzilla::Group->new({ id => $group_id, cache => 1 });
 }
 
+# you can always file bugs into a product's default security group, as well as
+# into any of the groups in @always_fileable_groups
+sub group_always_settable {
+    my ( $self, $group ) = @_;
+    my @always_fileable_groups = split(/\s*,\s*/, Bugzilla->params->{always_fileable_groups});
+    return $group->name eq $self->default_security_group
+      || ( ( any { $_ eq $group->name } @always_fileable_groups ) ? 1 : 0 );
+}
+
+
 ###############################
 ####      Subroutines    ######
 ###############################
