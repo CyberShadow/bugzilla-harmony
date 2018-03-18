@@ -77,10 +77,6 @@ BEGIN {
     *Bugzilla::Bug::is_unassigned                   = \&_bug_is_unassigned;
     *Bugzilla::Bug::has_current_patch               = \&_bug_has_current_patch;
     *Bugzilla::Bug::missing_sec_approval            = \&_bug_missing_sec_approval;
-    *Bugzilla::Product::default_platform_id         = \&_product_default_platform_id;
-    *Bugzilla::Product::default_op_sys_id           = \&_product_default_op_sys_id;
-    *Bugzilla::Product::default_platform            = \&_product_default_platform;
-    *Bugzilla::Product::default_op_sys              = \&_product_default_op_sys;
     *Bugzilla::Attachment::is_bounty_attachment     = \&_attachment_is_bounty_attachment;
     *Bugzilla::Attachment::bounty_details           = \&_attachment_bounty_details;
     *Bugzilla::Attachment::external_redirect        = \&_attachment_external_redirect;
@@ -817,24 +813,6 @@ sub quicksearch_map {
     }
 }
 
-sub object_columns {
-    my ($self, $args) = @_;
-    return unless $args->{class}->isa('Bugzilla::Product');
-    push @{ $args->{columns} }, qw(
-        default_platform_id
-        default_op_sys_id
-    );
-}
-
-sub object_update_columns {
-    my ($self, $args) = @_;
-    return unless $args->{object}->isa('Bugzilla::Product');
-    push @{ $args->{columns} }, qw(
-        default_platform_id
-        default_op_sys_id
-    );
-}
-
 sub object_before_create {
     my ($self, $args) = @_;
     return unless $args->{class}->isa('Bugzilla::Product');
@@ -974,33 +952,6 @@ sub _bug_missing_sec_approval {
     return $set == 0;
 }
 
-sub _product_default_platform_id { $_[0]->{default_platform_id} }
-sub _product_default_op_sys_id   { $_[0]->{default_op_sys_id}   }
-
-sub _product_default_platform {
-    my ($self) = @_;
-    if (!exists $self->{default_platform}) {
-        $self->{default_platform} = $self->default_platform_id
-            ? Bugzilla::Field::Choice
-                ->type('rep_platform')
-                ->new($_[0]->{default_platform_id})
-                ->name
-            : undef;
-    }
-    return $self->{default_platform};
-}
-sub _product_default_op_sys {
-    my ($self) = @_;
-    if (!exists $self->{default_op_sys}) {
-        $self->{default_op_sys} = $self->default_op_sys_id
-            ? Bugzilla::Field::Choice
-                ->type('op_sys')
-                ->new($_[0]->{default_op_sys_id})
-                ->name
-            : undef;
-    }
-    return $self->{default_op_sys};
-}
 
 sub _get_named_query {
     my ($sharer_id, $group_id, $definition) = @_;
@@ -1379,34 +1330,6 @@ sub db_schema_abstract_schema {
 
 sub install_update_db {
     my $dbh = Bugzilla->dbh;
-
-    # per-product hw/os defaults
-    my $op_sys_default = _field_value('op_sys', 'Unspecified', 50);
-    $dbh->bz_add_column(
-        'products',
-        'default_op_sys_id' => {
-            TYPE       => 'INT2',
-            DEFAULT    => $op_sys_default->id,
-            REFERENCES => {
-                TABLE  => 'op_sys',
-                COLUMN => 'id',
-                DELETE => 'SET NULL',
-            },
-        }
-    );
-    my $platform_default = _field_value('rep_platform', 'Unspecified', 50);
-    $dbh->bz_add_column(
-        'products',
-        'default_platform_id' => {
-            TYPE       => 'INT2',
-            DEFAULT    => $platform_default->id,
-            REFERENCES => {
-                TABLE  => 'rep_platform',
-                COLUMN => 'id',
-                DELETE => 'SET NULL',
-            },
-        }
-    );
 
     # Migrate old is_active stuff to new patch (is in core in 4.2), The old
     # column name was 'is_active', the new one is 'isactive' (no underscore).

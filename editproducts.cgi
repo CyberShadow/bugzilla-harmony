@@ -166,6 +166,8 @@ if ($action eq 'new') {
         isactive            => scalar $cgi->param('is_active'),
         create_series       => scalar $cgi->param('createseries'),
         allows_unconfirmed  => scalar $cgi->param('allows_unconfirmed'),
+        default_platform_id => scalar $cgi->param('default_platform_id'),
+        default_op_sys_id   => scalar $cgi->param('default_op_sys_id'),
         security_group_id   => scalar $cgi->param('security_group_id'),
     );
     my $product = Bugzilla::Product->create(\%create_params);
@@ -280,7 +282,7 @@ if ($action eq 'update') {
         default_milestone  => scalar $cgi->param('defaultmilestone'),
     });
 
-    foreach my $field (qw( security_group_id )) {
+    foreach my $field (qw( default_platform_id default_op_sys_id security_group_id )) {
         my $value = $cgi->param($field);
         detaint_natural($value);
         $product->set($field, $value);

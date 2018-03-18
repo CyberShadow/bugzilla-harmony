@@ -47,6 +47,8 @@ use constant DB_COLUMNS => qw(
    isactive
    defaultmilestone
    allows_unconfirmed
+   default_platform_id
+   default_op_sys_id
    security_group_id
 );
 
@@ -56,6 +58,8 @@ use constant UPDATE_COLUMNS => qw(
     defaultmilestone
     isactive
     allows_unconfirmed
+    default_platform_id
+    default_op_sys_id
     security_group_id
 );
 
@@ -864,6 +868,9 @@ sub default_security_group_obj {
     return Bugzilla::Group->new({ id => $group_id, cache => 1 });
 }
 
+sub default_platform_id { shift->{default_platform_id} }
+sub default_op_sys_id   { shift->{default_op_sys_id}   }
+
 # you can always file bugs into a product's default security group, as well as
 # into any of the groups in @always_fileable_groups
 sub group_always_settable {
@@ -871,6 +878,33 @@ sub group_always_settable {
     my @always_fileable_groups = split(/\s*,\s*/, Bugzilla->params->{always_fileable_groups});
     return $group->name eq $self->default_security_group
       || ( ( any { $_ eq $group->name } @always_fileable_groups ) ? 1 : 0 );
+}
+
+
+sub default_platform {
+    my ($self) = @_;
+    if (!exists $self->{default_platform}) {
+        $self->{default_platform} = $self->default_platform_id
+            ? Bugzilla::Field::Choice
+                ->type('rep_platform')
+                ->new($self->{default_platform_id})
+                ->name
+            : undef;
+    }
+    return $self->{default_platform};
+}
+
+sub default_op_sys {
+    my ($self) = @_;
+    if (!exists $self->{default_op_sys}) {
+        $self->{default_op_sys} = $self->default_op_sys_id
+            ? Bugzilla::Field::Choice
+                ->type('op_sys')
+                ->new($self->{default_op_sys_id})
+                ->name
+            : undef;
+    }
+    return $self->{default_op_sys};
 }
 
 
