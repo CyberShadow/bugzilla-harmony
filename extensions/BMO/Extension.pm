@@ -81,7 +81,6 @@ BEGIN {
     *Bugzilla::Product::default_op_sys_id           = \&_product_default_op_sys_id;
     *Bugzilla::Product::default_platform            = \&_product_default_platform;
     *Bugzilla::Product::default_op_sys              = \&_product_default_op_sys;
-    *Bugzilla::check_default_product_security_group = \&_check_default_product_security_group;
     *Bugzilla::Attachment::is_bounty_attachment     = \&_attachment_is_bounty_attachment;
     *Bugzilla::Attachment::bounty_details           = \&_attachment_bounty_details;
     *Bugzilla::Attachment::external_redirect        = \&_attachment_external_redirect;
@@ -2466,20 +2465,6 @@ sub query_database {
                 || ThrowTemplateError($template->error());
             exit;
         }
-    }
-}
-
-# called from the verify version, component, and group page.
-# if we're making a group invalid, stuff the default group into the cgi param
-# to make it checked by default.
-sub _check_default_product_security_group {
-    my ($self, $product, $invalid_groups, $optional_group_controls) = @_;
-    return unless my $group = $product->default_security_group_obj;
-    if (@$invalid_groups) {
-        my $cgi = Bugzilla->cgi;
-        my @groups = $cgi->param('groups');
-        push @groups, $group->name unless grep { $_ eq $group->name } @groups;
-        $cgi->param('groups', @groups);
     }
 }
 
