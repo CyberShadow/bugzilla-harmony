@@ -47,6 +47,7 @@ use constant DB_COLUMNS => qw(
    isactive
    defaultmilestone
    allows_unconfirmed
+   security_group_id
 );
 
 use constant UPDATE_COLUMNS => qw(
@@ -55,6 +56,7 @@ use constant UPDATE_COLUMNS => qw(
     defaultmilestone
     isactive
     allows_unconfirmed
+    security_group_id
 );
 
 use constant VALIDATORS => {
