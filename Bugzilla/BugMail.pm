@@ -438,7 +438,7 @@ sub sendMail {
     bugmailtype     => $bugmailtype,
   };
 
-  if (Bugzilla->params->{'use_mailer_queue'}) {
+  if (Bugzilla->get_param_with_override('use_mailer_queue')) {
     enqueue($vars);
   }
   else {
