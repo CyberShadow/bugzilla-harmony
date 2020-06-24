@@ -16,27 +16,23 @@ use Bugzilla::Config::Common;
 our $sortkey = 1350;
 
 sub get_param_list {
-    my ($class) = @_;
+  my ($class) = @_;
 
-    my @param_list = (
-        {
-            name    => 'persona_verify_url',
-            type    => 't',
-            default => 'https://verifier.login.persona.org/verify',
-        },
-        {
-            name    => 'persona_includejs_url',
-            type    => 't',
-            default => 'https://login.persona.org/include.js',
-        },
-        {
-            name    => 'persona_proxy_url',
-            type    => 't',
-            default => '',
-        },
-    );
+  my @param_list = (
+    {
+      name    => 'persona_verify_url',
+      type    => 't',
+      default => 'https://verifier.login.persona.org/verify',
+    },
+    {
+      name    => 'persona_includejs_url',
+      type    => 't',
+      default => 'https://login.persona.org/include.js',
+    },
+    {name => 'persona_proxy_url', type => 't', default => '',},
+  );
 
-    return @param_list;
+  return @param_list;
 }
 
 1;

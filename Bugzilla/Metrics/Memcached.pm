@@ -14,11 +14,11 @@ use warnings;
 use base 'Bugzilla::Memcached';
 
 sub _get {
-    my $self = shift;
-    Bugzilla->metrics->memcached_start($_[0]);
-    my $result = $self->SUPER::_get(@_);
-    Bugzilla->metrics->memcached_end($result);
-    return $result;
+  my $self = shift;
+  Bugzilla->metrics->memcached_start($_[0]);
+  my $result = $self->SUPER::_get(@_);
+  Bugzilla->metrics->memcached_end($result);
+  return $result;
 }
 
 1;

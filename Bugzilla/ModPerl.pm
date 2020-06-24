@@ -11,8 +11,8 @@ use strict;
 use warnings;
 
 use File::Find ();
-use Cwd ();
-use Carp ();
+use Cwd        ();
+use Carp       ();
 
 # We don't need (or want) to use Bugzilla's template subclass.
 # it is easier to reason with the code without all the extra things Bugzilla::Template adds
@@ -22,47 +22,49 @@ use Template ();
 use Bugzilla::ModPerl::BlockIP;
 
 sub apache_config {
-    my ($class, $cgi_path) = @_;
+  my ($class, $cgi_path) = @_;
 
-    Carp::croak "\$cgi_path is required" unless $cgi_path;
+  Carp::croak "\$cgi_path is required" unless $cgi_path;
 
-    my %htaccess;
-    $cgi_path = Cwd::realpath($cgi_path);
-    my $wanted = sub {
-        package File::Find;
-        our ($name, $dir);
+  my %htaccess;
+  $cgi_path = Cwd::realpath($cgi_path);
+  my $wanted = sub {
 
-        if ($name =~ m#/\.htaccess$#) {
-            open my $fh, '<', $name or die "cannot open $name $!";
-            my $contents = do {
-                local $/ = undef;
-                <$fh>;
-            };
-            close $fh;
-            $htaccess{$dir} = { file => $name, contents => $contents, dir => $dir };
-        }
-    };
+    package File::Find;
+    our ($name, $dir);
 
-    File::Find::find( { wanted => $wanted, no_chdir => 1 }, $cgi_path );
-    my $template = Template->new;
-    my $conf;
-    my %vars = (
-        root_htaccess  => delete $htaccess{$cgi_path},
-        htaccess_files => [ map { $htaccess{$_} } sort { length $a <=> length $b } keys %htaccess ],
-        cgi_path       => $cgi_path,
-    );
-    $template->process(\*DATA, \%vars, \$conf);
-    my $apache_version = Apache2::ServerUtil::get_server_version();
-    if ($apache_version =~ m!Apache/(\d+)\.(\d+)\.(\d+)!) {
-        my ($major, $minor, $patch) = ($1, $2, $3);
-        if ($major > 2 || $major == 2 && $minor >= 4) {
-            $conf =~ s{^\s+deny\s+from\s+all.*$}{Require all denied}gmi;
-            $conf =~ s{^\s+allow\s+from\s+all.*$}{Require all granted}gmi;
-            $conf =~ s{^\s+allow\s+from\s+(\S+).*$}{Require host $1}gmi;
-        }
+    if ($name =~ m#/\.htaccess$#) {
+      open my $fh, '<', $name or die "cannot open $name $!";
+      my $contents = do {
+        local $/ = undef;
+        <$fh>;
+      };
+      close $fh;
+      $htaccess{$dir} = {file => $name, contents => $contents, dir => $dir};
     }
+  };
 
-    return $conf;
+  File::Find::find({wanted => $wanted, no_chdir => 1}, $cgi_path);
+  my $template = Template->new;
+  my $conf;
+  my %vars = (
+    root_htaccess => delete $htaccess{$cgi_path},
+    htaccess_files =>
+      [map { $htaccess{$_} } sort { length $a <=> length $b } keys %htaccess],
+    cgi_path => $cgi_path,
+  );
+  $template->process(\*DATA, \%vars, \$conf);
+  my $apache_version = Apache2::ServerUtil::get_server_version();
+  if ($apache_version =~ m!Apache/(\d+)\.(\d+)\.(\d+)!) {
+    my ($major, $minor, $patch) = ($1, $2, $3);
+    if ($major > 2 || $major == 2 && $minor >= 4) {
+      $conf =~ s{^\s+deny\s+from\s+all.*$}{Require all denied}gmi;
+      $conf =~ s{^\s+allow\s+from\s+all.*$}{Require all granted}gmi;
+      $conf =~ s{^\s+allow\s+from\s+(\S+).*$}{Require host $1}gmi;
+    }
+  }
+
+  return $conf;
 }
 
 1;

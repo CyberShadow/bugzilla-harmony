@@ -22,7 +22,7 @@ use Bugzilla::Group;
 
 use Bugzilla::Extension::PhabBugz::Project;
 use Bugzilla::Extension::PhabBugz::Util qw(
-    get_phab_bmo_ids
+  get_phab_bmo_ids
 );
 
 Bugzilla->usage_mode(USAGE_MODE_CMDLINE);
@@ -30,16 +30,16 @@ Bugzilla->usage_mode(USAGE_MODE_CMDLINE);
 my ($phab_uri, $phab_sync_groups);
 
 if (!Bugzilla->params->{phabricator_enabled}) {
-    exit;
+  exit;
 }
 
 # Sanity checks
 unless ($phab_uri = Bugzilla->params->{phabricator_base_uri}) {
-    ThrowUserError('invalid_phabricator_uri');
+  ThrowUserError('invalid_phabricator_uri');
 }
 
 unless ($phab_sync_groups = Bugzilla->params->{phabricator_sync_groups}) {
-    ThrowUserError('invalid_phabricator_sync_groups');
+  ThrowUserError('invalid_phabricator_sync_groups');
 }
 
 # Loop through each group and perform the following:
@@ -50,50 +50,54 @@ unless ($phab_sync_groups = Bugzilla->params->{phabricator_sync_groups}) {
 # 4. Set project members to exact list
 # 5. Profit
 
-my $sync_groups = Bugzilla::Group->match({ name => [ split('[,\s]+', $phab_sync_groups) ] });
+my $sync_groups
+  = Bugzilla::Group->match({name => [split('[,\s]+', $phab_sync_groups)]});
 
 foreach my $group (@$sync_groups) {
-    # Create group project if one does not yet exist
-    my $phab_project_name = 'bmo-' . $group->name;
-    my $project = Bugzilla::Extension::PhabBugz::Project->new_from_query({
-        name => $phab_project_name
-    });
-    if (!$project) {
-        my $secure_revision = Bugzilla::Extension::PhabBugz::Project->new_from_query({
-            name => 'secure-revision'
-        });
-        $project = Bugzilla::Extension::PhabBugz::Project->create({
-            name        => $phab_project_name,
-            description => 'BMO Security Group for ' . $group->name,
-            view_policy => $secure_revision->phid,
-            edit_policy => $secure_revision->phid,
-            join_policy => $secure_revision->phid
-        });
-    }
 
-    if (my @group_members = get_group_members($group)) {
-        $project->set_members(\@group_members);
-        $project->update();
-    }
+  # Create group project if one does not yet exist
+  my $phab_project_name = 'bmo-' . $group->name;
+  my $project
+    = Bugzilla::Extension::PhabBugz::Project->new_from_query({
+    name => $phab_project_name
+    });
+  if (!$project) {
+    my $secure_revision
+      = Bugzilla::Extension::PhabBugz::Project->new_from_query({
+      name => 'secure-revision'
+      });
+    $project = Bugzilla::Extension::PhabBugz::Project->create({
+      name        => $phab_project_name,
+      description => 'BMO Security Group for ' . $group->name,
+      view_policy => $secure_revision->phid,
+      edit_policy => $secure_revision->phid,
+      join_policy => $secure_revision->phid
+    });
+  }
+
+  if (my @group_members = get_group_members($group)) {
+    $project->set_members(\@group_members);
+    $project->update();
+  }
 }
 
 sub get_group_members {
-    my ($group) = @_;
-    my $group_obj = ref $group ? $group : Bugzilla::Group->check({ name => $group });
-    my $members_all = $group_obj->members_complete();
-    my %users;
-    foreach my $name (keys %$members_all) {
-        foreach my $user (@{ $members_all->{$name} }) {
-            $users{$user->id} = $user;
-        }
+  my ($group) = @_;
+  my $group_obj = ref $group ? $group : Bugzilla::Group->check({name => $group});
+  my $members_all = $group_obj->members_complete();
+  my %users;
+  foreach my $name (keys %$members_all) {
+    foreach my $user (@{$members_all->{$name}}) {
+      $users{$user->id} = $user;
     }
+  }
 
-    # Look up the phab ids for these users
-    my $phab_users = get_phab_bmo_ids({ ids => [ keys %users ] });
-    foreach my $phab_user (@{ $phab_users }) {
-        $users{$phab_user->{id}}->{phab_phid} = $phab_user->{phid};
-    }
+  # Look up the phab ids for these users
+  my $phab_users = get_phab_bmo_ids({ids => [keys %users]});
+  foreach my $phab_user (@{$phab_users}) {
+    $users{$phab_user->{id}}->{phab_phid} = $phab_user->{phid};
+  }
 
-    # We only need users who have accounts in phabricator
-    return grep { $_->phab_phid } values %users;
+  # We only need users who have accounts in phabricator
+  return grep { $_->phab_phid } values %users;
 }

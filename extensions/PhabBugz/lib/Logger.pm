@@ -13,25 +13,27 @@ use Moo;
 
 use Bugzilla::Extension::PhabBugz::Constants;
 
-has 'debugging' => ( is => 'ro' );
+has 'debugging' => (is => 'ro');
 
-sub info  { shift->_log_it('INFO', @_) }
+sub info  { shift->_log_it('INFO',  @_) }
 sub error { shift->_log_it('ERROR', @_) }
 sub debug { shift->_log_it('DEBUG', @_) }
 
 sub _log_it {
-    my ($self, $method, $message) = @_;
+  my ($self, $method, $message) = @_;
 
-    return if $method eq 'DEBUG' && !$self->debugging;
-    chomp $message;
-    if ($ENV{MOD_PERL}) {
-        require Apache2::Log;
-        Apache2::ServerRec::warn("FEED $method: $message");
-    } elsif ($ENV{SCRIPT_FILENAME}) {
-        print STDERR "FEED $method: $message\n";
-    } else {
-        print STDERR '[' . localtime(time) ."] $method: $message\n";
-    }
+  return if $method eq 'DEBUG' && !$self->debugging;
+  chomp $message;
+  if ($ENV{MOD_PERL}) {
+    require Apache2::Log;
+    Apache2::ServerRec::warn("FEED $method: $message");
+  }
+  elsif ($ENV{SCRIPT_FILENAME}) {
+    print STDERR "FEED $method: $message\n";
+  }
+  else {
+    print STDERR '[' . localtime(time) . "] $method: $message\n";
+  }
 }
 
 1;

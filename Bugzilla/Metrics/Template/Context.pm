@@ -14,17 +14,17 @@ use warnings;
 use base 'Bugzilla::Template::Context';
 
 sub process {
-    my $self = shift;
+  my $self = shift;
 
-    # we only want to measure files not template blocks
-    if (ref($_[0]) || substr($_[0], -5) ne '.tmpl') {
-        return $self->SUPER::process(@_);
-    }
+  # we only want to measure files not template blocks
+  if (ref($_[0]) || substr($_[0], -5) ne '.tmpl') {
+    return $self->SUPER::process(@_);
+  }
 
-    Bugzilla->metrics->template_start($_[0]);
-    my $result = $self->SUPER::process(@_);
-    Bugzilla->metrics->end();
-    return $result;
+  Bugzilla->metrics->template_start($_[0]);
+  my $result = $self->SUPER::process(@_);
+  Bugzilla->metrics->end();
+  return $result;
 }
 
 1;

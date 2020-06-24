@@ -24,9 +24,10 @@ GetOptions('unblock' => \$unblock);
 pod2usage("No IPs given") unless @ARGV;
 
 if ($unblock) {
-    Bugzilla::ModPerl::BlockIP->unblock_ip($_) for @ARGV;
-} else {
-    Bugzilla::ModPerl::BlockIP->block_ip($_) for @ARGV;
+  Bugzilla::ModPerl::BlockIP->unblock_ip($_) for @ARGV;
+}
+else {
+  Bugzilla::ModPerl::BlockIP->block_ip($_) for @ARGV;
 }
 
 =head1 NAME

@@ -36,250 +36,197 @@ use Sys::Hostname qw(hostname);
 use parent qw(Exporter);
 
 our @EXPORT_OK = qw(
-    read_localconfig
-    update_localconfig
-    ENV_KEYS
+  read_localconfig
+  update_localconfig
+  ENV_KEYS
 );
 
 # might want to change this for upstream
-use constant ENV_PREFIX     => 'BMO_';
-use constant PARAM_OVERRIDE => qw( shadowdb shadowdbhost shadowdbport shadowdbsock );
+use constant ENV_PREFIX => 'BMO_';
+use constant PARAM_OVERRIDE =>
+  qw( shadowdb shadowdbhost shadowdbport shadowdbsock );
 
 sub _sensible_group {
-    return '' if ON_WINDOWS;
-    return scalar getgrgid($EGID);
+  return '' if ON_WINDOWS;
+  return scalar getgrgid($EGID);
 }
 
 sub _migrate_param {
-    my ( $name, $fallback_value ) = @_;
+  my ($name, $fallback_value) = @_;
 
-    return sub {
-        if ( Bugzilla->can('params') ) {
-            return Bugzilla->params->{$name} // $fallback_value;
-        }
-        else {
-            return $fallback_value;
-        }
-    };
+  return sub {
+    if (Bugzilla->can('params')) {
+      return Bugzilla->params->{$name} // $fallback_value;
+    }
+    else {
+      return $fallback_value;
+    }
+  };
 }
 
 use constant LOCALCONFIG_VARS => (
-    {
-        name    => 'create_htaccess',
-        default => 1,
-    },
-    {
-        name    => 'webservergroup',
-        default => \&_sensible_group,
-    },
-    {
-        name    => 'use_suexec',
-        default => 0,
-    },
-    {
-        name    => 'db_driver',
-        default => 'mysql',
-    },
-    {
-        name    => 'db_host',
-        default => 'localhost',
-    },
-    {
-        name    => 'db_name',
-        default => 'bugs',
-    },
-    {
+  {name => 'create_htaccess', default => 1,},
+  {name => 'webservergroup',  default => \&_sensible_group,},
+  {name => 'use_suexec',      default => 0,},
+  {name => 'db_driver',       default => 'mysql',},
+  {name => 'db_host',         default => 'localhost',},
+  {name => 'db_name',         default => 'bugs',},
+  {
 
-        name    => 'db_user',
-        default => 'bugs',
-    },
-    {
-        name    => 'db_pass',
-        default => '',
-    },
-    {
-        name    => 'db_port',
-        default => 0,
-    },
-    {
-        name    => 'db_sock',
-        default => '',
-    },
-    {
-        name    => 'db_check',
-        default => 1,
-    },
-    {
-        name    => 'index_html',
-        default => 0,
-    },
-    {
-        name    => 'cvsbin',
-        default => sub { bin_loc('cvs') },
-    },
-    {
-        name    => 'interdiffbin',
-        default => sub { bin_loc('interdiff') },
-    },
-    {
-        name    => 'diffpath',
-        default => sub { dirname( bin_loc('diff') ) },
-    },
-    {
-        name => 'site_wide_secret',
+    name    => 'db_user',
+    default => 'bugs',
+  },
+  {name => 'db_pass',      default => '',},
+  {name => 'db_port',      default => 0,},
+  {name => 'db_sock',      default => '',},
+  {name => 'db_check',     default => 1,},
+  {name => 'index_html',   default => 0,},
+  {name => 'cvsbin',       default => sub { bin_loc('cvs') },},
+  {name => 'interdiffbin', default => sub { bin_loc('interdiff') },},
+  {name => 'diffpath',     default => sub { dirname(bin_loc('diff')) },},
+  {
+    name => 'site_wide_secret',
 
-        # 64 characters is roughly the equivalent of a 384-bit key, which
-        # is larger than anybody would ever be able to brute-force.
-        default => sub { generate_random_password(64) },
+    # 64 characters is roughly the equivalent of a 384-bit key, which
+    # is larger than anybody would ever be able to brute-force.
+    default => sub { generate_random_password(64) },
+  },
+  {
+    name    => 'param_override',
+    default => {
+      memcached_servers   => undef,
+      memcached_namespace => undef,
+      shadowdb            => undef,
+      shadowdbhost        => undef,
+      shadowdbport        => undef,
+      shadowdbsock        => undef,
     },
-    {
-        name    => 'param_override',
-        default => {
-            memcached_servers   => undef,
-            memcached_namespace => undef,
-            shadowdb            => undef,
-            shadowdbhost        => undef,
-            shadowdbport        => undef,
-            shadowdbsock        => undef,
-        },
-    },
-    {
-        name    => 'apache_size_limit',
-        default => 600000,
-    },
-    {
-        name    => 'memcached_servers',
-        default => _migrate_param( "memcached_servers", "" ),
-    },
-    {
-        name    => 'memcached_namespace',
-        default => _migrate_param( "memcached_namespace", "bugzilla:" ),
-    },
-    {
-        name    => 'urlbase',
-        default => _migrate_param( "urlbase", "" ),
-    },
-    {
-        name    => 'attachment_base',
-        default => _migrate_param( "attachment_base", '' ),
-    },
-    {
-        name    => 'ses_username',
-        default => '',
-    },
-    {
-        name    => 'ses_password',
-        default => '',
-    },
-    {
-        name => 'inbound_proxies',
-        default => _migrate_param( 'inbound_proxies', '' ),
-    },
+  },
+  {name => 'apache_size_limit', default => 600000,},
+  {
+    name    => 'memcached_servers',
+    default => _migrate_param("memcached_servers", ""),
+  },
+  {
+    name    => 'memcached_namespace',
+    default => _migrate_param("memcached_namespace", "bugzilla:"),
+  },
+  {name => 'urlbase',         default => _migrate_param("urlbase",         ""),},
+  {name => 'attachment_base', default => _migrate_param("attachment_base", ''),},
+  {name => 'ses_username',    default => '',},
+  {name => 'ses_password',    default => '',},
+  {name => 'inbound_proxies', default => _migrate_param('inbound_proxies', ''),},
 );
 
 
 use constant ENV_KEYS => (
-    (map { ENV_PREFIX . $_->{name} } LOCALCONFIG_VARS),
-    (map { ENV_PREFIX . $_ } PARAM_OVERRIDE),
+  (map { ENV_PREFIX . $_->{name} } LOCALCONFIG_VARS),
+  (map { ENV_PREFIX . $_ } PARAM_OVERRIDE),
 );
 
 sub _read_localconfig_from_env {
-    my %localconfig;
+  my %localconfig;
 
-    foreach my $var ( LOCALCONFIG_VARS ) {
-        my $name = $var->{name};
-        my $key  = ENV_PREFIX . $name;
-        if ($name eq 'param_override') {
-            foreach my $override (PARAM_OVERRIDE) {
-                my $o_key = ENV_PREFIX . $override;
-                $localconfig{param_override}{$override} = $ENV{$o_key};
-                untaint($localconfig{param_override}{$override});
-            }
-        }
-        elsif (exists $ENV{$key}) {
-            $localconfig{$name} = $ENV{$key};
-            untaint($localconfig{$name});
-        }
-        else {
-            my $default = $var->{default};
-            $localconfig{$name} = ref($default) eq 'CODE' ? $default->() : $default;
-        }
+  foreach my $var (LOCALCONFIG_VARS) {
+    my $name = $var->{name};
+    my $key  = ENV_PREFIX . $name;
+    if ($name eq 'param_override') {
+      foreach my $override (PARAM_OVERRIDE) {
+        my $o_key = ENV_PREFIX . $override;
+        $localconfig{param_override}{$override} = $ENV{$o_key};
+        untaint($localconfig{param_override}{$override});
+      }
     }
+    elsif (exists $ENV{$key}) {
+      $localconfig{$name} = $ENV{$key};
+      untaint($localconfig{$name});
+    }
+    else {
+      my $default = $var->{default};
+      $localconfig{$name} = ref($default) eq 'CODE' ? $default->() : $default;
+    }
+  }
 
-    return \%localconfig;
+  return \%localconfig;
 }
 
 sub _read_localconfig_from_file {
-    my ($include_deprecated) = @_;
-    my $filename = bz_locations()->{'localconfig'};
+  my ($include_deprecated) = @_;
+  my $filename = bz_locations()->{'localconfig'};
 
-    my %localconfig;
-    if (-e $filename) {
-        my $s = new Safe;
-        # Some people like to store their database password in another file.
-        $s->permit('dofile');
+  my %localconfig;
+  if (-e $filename) {
+    my $s = new Safe;
 
-        $s->rdo($filename);
-        if ($@ || $!) {
-            my $err_msg = $@ ? $@ : $!;
-            die install_string('error_localconfig_read',
-                    { error => $err_msg, localconfig => $filename }), "\n";
-        }
+    # Some people like to store their database password in another file.
+    $s->permit('dofile');
 
-        my @read_symbols;
-        if ($include_deprecated) {
-            # First we have to get the whole symbol table
-            my $safe_root = $s->root;
-            my %safe_package;
-            { no strict 'refs'; %safe_package = %{$safe_root . "::"}; }
-            # And now we read the contents of every var in the symbol table.
-            # However:
-            # * We only include symbols that start with an alphanumeric
-            #   character. This excludes symbols like "_<./localconfig"
-            #   that show up in some perls.
-            # * We ignore the INC symbol, which exists in every package.
-            # * Perl 5.10 imports a lot of random symbols that all
-            #   contain "::", and we want to ignore those.
-            @read_symbols = grep { /^[A-Za-z0-1]/ and !/^INC$/ and !/::/ }
-                                 (keys %safe_package);
-        }
-        else {
-            @read_symbols = map($_->{name}, LOCALCONFIG_VARS);
-        }
-        foreach my $var (@read_symbols) {
-            my $glob = $s->varglob($var);
-            # We can't get the type of a variable out of a Safe automatically.
-            # We can only get the glob itself. So we figure out its type this
-            # way, by trying first a scalar, then an array, then a hash.
-            #
-            # The interesting thing is that this converts all deprecated
-            # array or hash vars into hashrefs or arrayrefs, but that's
-            # fine since as I write this all modern localconfig vars are
-            # actually scalars.
-            if (defined $$glob) {
-                $localconfig{$var} = $$glob;
-            }
-            elsif (@$glob) {
-                $localconfig{$var} = \@$glob;
-            }
-            elsif (%$glob) {
-                $localconfig{$var} = \%$glob;
-            }
-        }
+    $s->rdo($filename);
+    if ($@ || $!) {
+      my $err_msg = $@ ? $@ : $!;
+      die install_string(
+        'error_localconfig_read', {error => $err_msg, localconfig => $filename}
+        ),
+        "\n";
     }
 
-    return \%localconfig;
+    my @read_symbols;
+    if ($include_deprecated) {
+
+      # First we have to get the whole symbol table
+      my $safe_root = $s->root;
+      my %safe_package;
+      { no strict 'refs'; %safe_package = %{$safe_root . "::"}; }
+
+      # And now we read the contents of every var in the symbol table.
+      # However:
+      # * We only include symbols that start with an alphanumeric
+      #   character. This excludes symbols like "_<./localconfig"
+      #   that show up in some perls.
+      # * We ignore the INC symbol, which exists in every package.
+      # * Perl 5.10 imports a lot of random symbols that all
+      #   contain "::", and we want to ignore those.
+      @read_symbols
+        = grep { /^[A-Za-z0-1]/ and !/^INC$/ and !/::/ } (keys %safe_package);
+    }
+    else {
+      @read_symbols = map($_->{name}, LOCALCONFIG_VARS);
+    }
+    foreach my $var (@read_symbols) {
+      my $glob = $s->varglob($var);
+
+      # We can't get the type of a variable out of a Safe automatically.
+      # We can only get the glob itself. So we figure out its type this
+      # way, by trying first a scalar, then an array, then a hash.
+      #
+      # The interesting thing is that this converts all deprecated
+      # array or hash vars into hashrefs or arrayrefs, but that's
+      # fine since as I write this all modern localconfig vars are
+      # actually scalars.
+      if (defined $$glob) {
+        $localconfig{$var} = $$glob;
+      }
+      elsif (@$glob) {
+        $localconfig{$var} = \@$glob;
+      }
+      elsif (%$glob) {
+        $localconfig{$var} = \%$glob;
+      }
+    }
+  }
+
+  return \%localconfig;
 }
 
 sub read_localconfig {
-    my ($include_deprecated) = @_;
+  my ($include_deprecated) = @_;
 
-    if ($ENV{LOCALCONFIG_ENV}) {
-        return _read_localconfig_from_env();
-    }
-    else {
-        return _read_localconfig_from_file($include_deprecated);
-    }
+  if ($ENV{LOCALCONFIG_ENV}) {
+    return _read_localconfig_from_env();
+  }
+  else {
+    return _read_localconfig_from_file($include_deprecated);
+  }
 }
 
 #
@@ -307,96 +254,99 @@ sub read_localconfig {
 # Cute, ey?
 #
 sub update_localconfig {
-    my ($params) = @_;
+  my ($params) = @_;
 
-    if ($ENV{LOCALCONFIG_ENV}) {
-        require Carp;
-        Carp::croak("update_localconfig() called with LOCALCONFIG_ENV enabled");
+  if ($ENV{LOCALCONFIG_ENV}) {
+    require Carp;
+    Carp::croak("update_localconfig() called with LOCALCONFIG_ENV enabled");
+  }
+
+  my $output      = $params->{output} || 0;
+  my $answer      = Bugzilla->installation_answers;
+  my $localconfig = read_localconfig('include deprecated');
+
+  my @new_vars;
+  foreach my $var (LOCALCONFIG_VARS) {
+    my $name  = $var->{name};
+    my $value = $localconfig->{$name};
+
+    # Regenerate site_wide_secret if it was made by our old, weak
+    # generate_random_password. Previously we used to generate
+    # a 256-character string for site_wide_secret.
+    $value = undef
+      if ($name eq 'site_wide_secret' and defined $value and length($value) == 256);
+
+    if (!defined $value) {
+      push(@new_vars, $name);
+      $var->{default} = &{$var->{default}} if ref($var->{default}) eq 'CODE';
+      if (exists $answer->{$name}) {
+        $localconfig->{$name} = $answer->{$name};
+      }
+      else {
+        $localconfig->{$name} = $var->{default};
+      }
     }
+  }
 
-    my $output      = $params->{output} || 0;
-    my $answer      = Bugzilla->installation_answers;
-    my $localconfig = read_localconfig('include deprecated');
+  if (!$localconfig->{'interdiffbin'} && $output) {
+    print "\n", install_string('patchutils_missing'), "\n";
+  }
 
-    my @new_vars;
-    foreach my $var (LOCALCONFIG_VARS) {
-        my $name = $var->{name};
-        my $value = $localconfig->{$name};
-        # Regenerate site_wide_secret if it was made by our old, weak
-        # generate_random_password. Previously we used to generate
-        # a 256-character string for site_wide_secret.
-        $value = undef if ($name eq 'site_wide_secret' and defined $value
-                           and length($value) == 256);
+  my @old_vars;
+  foreach my $var (keys %$localconfig) {
+    push(@old_vars, $var) if !grep($_->{name} eq $var, LOCALCONFIG_VARS);
+  }
 
-        if (!defined $value) {
-            push(@new_vars, $name);
-            $var->{default} = &{$var->{default}} if ref($var->{default}) eq 'CODE';
-            if (exists $answer->{$name}) {
-                $localconfig->{$name} = $answer->{$name};
-            }
-            else {
-                $localconfig->{$name} = $var->{default};
-            }
-        }
+  my $filename = bz_locations->{'localconfig'};
+
+  # Ensure output is sorted and deterministic
+  local $Data::Dumper::Sortkeys = 1;
+
+  # Move any custom or old variables into a separate file.
+  if (scalar @old_vars) {
+    my $filename_old = "$filename.old";
+    open(my $old_file, ">>:utf8", $filename_old) or die "$filename_old: $!";
+    local $Data::Dumper::Purity = 1;
+    foreach my $var (@old_vars) {
+      print $old_file Data::Dumper->Dump([$localconfig->{$var}], ["*$var"]) . "\n\n";
     }
+    close $old_file;
+    my $oldstuff = join(', ', @old_vars);
+    print install_string('lc_old_vars',
+      {localconfig => $filename, old_file => $filename_old, vars => $oldstuff}),
+      "\n";
+  }
 
-    if (!$localconfig->{'interdiffbin'} && $output) {
-        print "\n", install_string('patchutils_missing'), "\n";
-    }
+  # Re-write localconfig
+  open(my $fh, ">:utf8", $filename) or die "$filename: $!";
+  foreach my $var (LOCALCONFIG_VARS) {
+    my $name = $var->{name};
+    my $desc = install_string("localconfig_$name", {root => ROOT_USER});
+    chomp($desc);
 
-    my @old_vars;
-    foreach my $var (keys %$localconfig) {
-        push(@old_vars, $var) if !grep($_->{name} eq $var, LOCALCONFIG_VARS);
-    }
+    # Make the description into a comment.
+    $desc =~ s/^/# /mg;
+    print $fh $desc, "\n", Data::Dumper->Dump([$localconfig->{$name}], ["*$name"]),
+      "\n";
+  }
 
-    my $filename = bz_locations->{'localconfig'};
+  if (@new_vars) {
+    my $newstuff = join(', ', @new_vars);
+    print "\n";
+    print colored(
+      install_string(
+        'lc_new_vars', {localconfig => $filename, new_vars => wrap_hard($newstuff, 70)}
+      ),
+      COLOR_ERROR
+      ),
+      "\n";
+    exit unless $params->{use_defaults};
+  }
 
-    # Ensure output is sorted and deterministic
-    local $Data::Dumper::Sortkeys = 1;
+  # Reset the cache for Bugzilla->localconfig so that it will be re-read
+  delete Bugzilla->process_cache->{localconfig};
 
-    # Move any custom or old variables into a separate file.
-    if (scalar @old_vars) {
-        my $filename_old = "$filename.old";
-        open(my $old_file, ">>:utf8", $filename_old)
-            or die "$filename_old: $!";
-        local $Data::Dumper::Purity = 1;
-        foreach my $var (@old_vars) {
-            print $old_file Data::Dumper->Dump([$localconfig->{$var}],
-                                               ["*$var"]) . "\n\n";
-        }
-        close $old_file;
-        my $oldstuff = join(', ', @old_vars);
-        print install_string('lc_old_vars',
-            { localconfig => $filename, old_file => $filename_old,
-              vars => $oldstuff }), "\n";
-    }
-
-    # Re-write localconfig
-    open(my $fh, ">:utf8", $filename) or die "$filename: $!";
-    foreach my $var (LOCALCONFIG_VARS) {
-        my $name = $var->{name};
-        my $desc = install_string("localconfig_$name", { root => ROOT_USER });
-        chomp($desc);
-        # Make the description into a comment.
-        $desc =~ s/^/# /mg;
-        print $fh $desc, "\n",
-                  Data::Dumper->Dump([$localconfig->{$name}],
-                                     ["*$name"]), "\n";
-   }
-
-    if (@new_vars) {
-        my $newstuff = join(', ', @new_vars);
-        print "\n";
-        print colored(install_string('lc_new_vars', { localconfig => $filename,
-                                                      new_vars => wrap_hard($newstuff, 70) }),
-                      COLOR_ERROR), "\n";
-        exit unless $params->{use_defaults};
-    }
-
-    # Reset the cache for Bugzilla->localconfig so that it will be re-read
-    delete Bugzilla->process_cache->{localconfig};
-
-    return { old_vars => \@old_vars, new_vars => \@new_vars };
+  return {old_vars => \@old_vars, new_vars => \@new_vars};
 }
 
 1;

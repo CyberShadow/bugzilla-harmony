@@ -16,25 +16,31 @@ use warnings;
 # configuration.
 use File::Basename;
 use File::Spec;
+
 BEGIN {
-    require lib;
-    my $dir = dirname(__FILE__);
-    lib->import($dir, File::Spec->catdir($dir, "lib"), File::Spec->catdir($dir, qw(local lib perl5)));
+  require lib;
+  my $dir = dirname(__FILE__);
+  lib->import(
+    $dir,
+    File::Spec->catdir($dir, "lib"),
+    File::Spec->catdir($dir, qw(local lib perl5))
+  );
 }
 
 use Bugzilla::ModPerl::StartupFix;
 use Taint::Util qw(untaint);
 
-use constant USE_NYTPROF => !! $ENV{USE_NYTPROF};
+use constant USE_NYTPROF => !!$ENV{USE_NYTPROF};
 use constant NYTPROF_DIR => do {
-    my $dir = $ENV{NYTPROF_DIR};
-    untaint($dir);
-    $dir;
+  my $dir = $ENV{NYTPROF_DIR};
+  untaint($dir);
+  $dir;
 };
+
 BEGIN {
-    if (USE_NYTPROF) {
-        $ENV{NYTPROF} = "savesrc=0:start=no:addpid=1";
-    }
+  if (USE_NYTPROF) {
+    $ENV{NYTPROF} = "savesrc=0:start=no:addpid=1";
+  }
 }
 use if USE_NYTPROF, 'Devel::NYTProf::Apache';
 
@@ -53,19 +59,20 @@ use Apache2::Log ();
 use Apache2::ServerUtil;
 use Apache2::SizeLimit;
 use ModPerl::RegistryLoader ();
-use File::Basename ();
-use File::Find ();
+use File::Basename          ();
+use File::Find              ();
 
 # This loads most of our modules.
 use Bugzilla ();
+
 # Loading Bugzilla.pm doesn't load this, though, and we want it preloaded.
-use Bugzilla::BugMail ();
-use Bugzilla::CGI ();
-use Bugzilla::Extension ();
+use Bugzilla::BugMail               ();
+use Bugzilla::CGI                   ();
+use Bugzilla::Extension             ();
 use Bugzilla::Install::Requirements ();
-use Bugzilla::Util ();
-use Bugzilla::RNG ();
-use Bugzilla::ModPerl ();
+use Bugzilla::Util                  ();
+use Bugzilla::RNG                   ();
+use Bugzilla::ModPerl               ();
 
 # Make warnings go to the virtual host's log and not the main
 # server log.
@@ -79,7 +86,7 @@ Bugzilla::CGI->compile(qw(:cgi :push));
 # sharing with the other httpd processes.
 my $limit = Bugzilla->localconfig->{apache_size_limit};
 if ($limit < 400_000) {
-    $limit = 400_000;
+  $limit = 400_000;
 }
 Apache2::SizeLimit->set_max_unshared_size($limit);
 
@@ -87,13 +94,13 @@ my $cgi_path = Bugzilla::Constants::bz_locations()->{'cgi_path'};
 
 # Set up the configuration for the web server
 my $server = Apache2::ServerUtil->server;
-my $conf = Bugzilla::ModPerl->apache_config($cgi_path);
-$server->add_config([ grep { length $_ } split("\n", $conf)]);
+my $conf   = Bugzilla::ModPerl->apache_config($cgi_path);
+$server->add_config([grep { length $_ } split("\n", $conf)]);
 
 # Pre-load localconfig. It might already be loaded, but we need to make sure.
 Bugzilla->localconfig;
 if ($ENV{LOCALCONFIG_ENV}) {
-    delete @ENV{ (Bugzilla::Install::Localconfig::ENV_KEYS) };
+  delete @ENV{(Bugzilla::Install::Localconfig::ENV_KEYS)};
 }
 
 # Pre-load all extensions
@@ -106,6 +113,7 @@ Bugzilla->template;
 
 # Have ModPerl::RegistryLoader pre-compile all CGI scripts.
 my $rl = new ModPerl::RegistryLoader();
+
 # If we try to do this in "new" it fails because it looks for a
 # Bugzilla/ModPerl/ResponseHandler.pm
 $rl->{package} = 'Bugzilla::ModPerl::ResponseHandler';
@@ -115,16 +123,16 @@ my $feature_files = Bugzilla::Install::Requirements::map_files_to_features();
 # This is important to prevent the current directory from getting into
 # @INC and messing things up. (See bug 630750.)
 no warnings 'redefine';
-local *lib::import = sub {};
+local *lib::import = sub { };
 use warnings;
 
 foreach my $file (glob "$cgi_path/*.cgi") {
-    my $base_filename = File::Basename::basename($file);
-    if (my $feature = $feature_files->{$base_filename}) {
-        next if !Bugzilla->feature($feature);
-    }
-    Bugzilla::Util::trick_taint($file);
-    $rl->handler($file, $file);
+  my $base_filename = File::Basename::basename($file);
+  if (my $feature = $feature_files->{$base_filename}) {
+    next if !Bugzilla->feature($feature);
+  }
+  Bugzilla::Util::trick_taint($file);
+  $rl->handler($file, $file);
 }
 
 # Some items might already be loaded into the request cache
@@ -141,44 +149,44 @@ use Time::HiRes;
 use Sys::Hostname;
 
 sub handler : method {
-    my $class = shift;
+  my $class = shift;
 
-    # $0 is broken under mod_perl before 2.0.2, so we have to set it
-    # here explicitly or init_page's shutdownhtml code won't work right.
-    $0 = $ENV{'SCRIPT_FILENAME'};
+  # $0 is broken under mod_perl before 2.0.2, so we have to set it
+  # here explicitly or init_page's shutdownhtml code won't work right.
+  $0 = $ENV{'SCRIPT_FILENAME'};
 
-    # Prevent "use lib" from modifying @INC in the case where a .cgi file
-    # is being automatically recompiled by mod_perl when Apache is
-    # running. (This happens if a file changes while Apache is already
-    # running.)
-    no warnings 'redefine';
-    local *lib::import = sub {};
-    use warnings;
+  # Prevent "use lib" from modifying @INC in the case where a .cgi file
+  # is being automatically recompiled by mod_perl when Apache is
+  # running. (This happens if a file changes while Apache is already
+  # running.)
+  no warnings 'redefine';
+  local *lib::import = sub { };
+  use warnings;
 
-    if (Bugzilla::ModPerl::USE_NYTPROF) {
-        state $count = {};
-        state $dir  = Bugzilla::ModPerl::NYTPROF_DIR // bz_locations()->{datadir};
-        state $host = (split(/\./, hostname()))[0];
-        my $script = File::Basename::basename($ENV{SCRIPT_FILENAME});
-        $script =~ s/\.cgi$//;
-        my $file = $dir . "/nytprof.$host.$script." . ++$count->{$$};
-        DB::enable_profile($file);
-    }
-    Bugzilla::init_page();
-    my $start = Time::HiRes::time();
-    my $result = $class->SUPER::handler(@_);
-    if (Bugzilla::ModPerl::USE_NYTPROF) {
-        DB::disable_profile();
-        DB::finish_profile();
-    }
-    warn "[request_time] ", Bugzilla->cgi->request_uri, " took ", Time::HiRes::time() - $start, " seconds to execute";
+  if (Bugzilla::ModPerl::USE_NYTPROF) {
+    state $count = {};
+    state $dir   = Bugzilla::ModPerl::NYTPROF_DIR // bz_locations()->{datadir};
+    state $host  = (split(/\./, hostname()))[0];
+    my $script = File::Basename::basename($ENV{SCRIPT_FILENAME});
+    $script =~ s/\.cgi$//;
+    my $file = $dir . "/nytprof.$host.$script." . ++$count->{$$};
+    DB::enable_profile($file);
+  }
+  Bugzilla::init_page();
+  my $start  = Time::HiRes::time();
+  my $result = $class->SUPER::handler(@_);
+  if (Bugzilla::ModPerl::USE_NYTPROF) {
+    DB::disable_profile();
+    DB::finish_profile();
+  }
+  warn "[request_time] ", Bugzilla->cgi->request_uri, " took ",
+    Time::HiRes::time() - $start, " seconds to execute";
 
-    # When returning data from the REST api we must only return 200 or 304,
-    # which tells Apache not to append its error html documents to the
-    # response.
-    return Bugzilla->usage_mode == USAGE_MODE_REST && $result != 304
-        ? Apache2::Const::OK
-        : $result;
+  # When returning data from the REST api we must only return 200 or 304,
+  # which tells Apache not to append its error html documents to the
+  # response.
+  return Bugzilla->usage_mode == USAGE_MODE_REST
+    && $result != 304 ? Apache2::Const::OK : $result;
 }
 
 
@@ -187,11 +195,11 @@ use strict;
 use Apache2::Const -compile => qw(OK);
 
 sub handler {
-    my $r = shift;
+  my $r = shift;
 
-    Bugzilla::_cleanup();
+  Bugzilla::_cleanup();
 
-    return Apache2::Const::OK;
+  return Apache2::Const::OK;
 }
 
 1;

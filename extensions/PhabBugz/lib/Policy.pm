@@ -19,30 +19,22 @@ use List::Util qw(first);
 use Types::Standard -all;
 use Type::Utils;
 
-has 'phid'      => ( is => 'ro', isa => Str );
-has 'type'      => ( is => 'ro', isa => Str );
-has 'name'      => ( is => 'ro', isa => Str );
-has 'shortName' => ( is => 'ro', isa => Str );
-has 'fullName'  => ( is => 'ro', isa => Str );
-has 'href'      => ( is => 'ro', isa => Maybe[Str] );
-has 'workflow'  => ( is => 'ro', isa => Maybe[Str] );
-has 'icon'      => ( is => 'ro', isa => Str );
-has 'default'   => ( is => 'ro', isa => Str );
+has 'phid'      => (is => 'ro', isa => Str);
+has 'type'      => (is => 'ro', isa => Str);
+has 'name'      => (is => 'ro', isa => Str);
+has 'shortName' => (is => 'ro', isa => Str);
+has 'fullName'  => (is => 'ro', isa => Str);
+has 'href'      => (is => 'ro', isa => Maybe [Str]);
+has 'workflow'  => (is => 'ro', isa => Maybe [Str]);
+has 'icon'      => (is => 'ro', isa => Str);
+has 'default'   => (is => 'ro', isa => Str);
 has 'rules' => (
-    is  => 'ro',
-    isa => ArrayRef[
-        Dict[
-            action => Str,
-            rule   => Str,
-            value  => Maybe[ArrayRef[Str]]
-        ]
-    ]
+  is => 'ro',
+  isa =>
+    ArrayRef [Dict [action => Str, rule => Str, value => Maybe [ArrayRef [Str]]]]
 );
 
-has 'rule_projects' => (
-    is => 'lazy',
-    isa => ArrayRef[Str],
-);
+has 'rule_projects' => (is => 'lazy', isa => ArrayRef [Str],);
 
 # {
 #   "data": [
@@ -80,65 +72,65 @@ has 'rule_projects' => (
 # }
 
 sub new_from_query {
-    my ($class, $params) = @_;
-    my $result = request('policy.query', $params);
-    if (exists $result->{result}{data} && @{ $result->{result}{data} }) {
-        return $class->new($result->{result}->{data}->[0]);
-    }
+  my ($class, $params) = @_;
+  my $result = request('policy.query', $params);
+  if (exists $result->{result}{data} && @{$result->{result}{data}}) {
+    return $class->new($result->{result}->{data}->[0]);
+  }
 }
 
 sub create {
-    my ($class, $project_names) = @_;
+  my ($class, $project_names) = @_;
 
-    my $data = {
-        objectType => 'DREV',
-        default    => 'deny',
-        policy     => [
-            {
-                action => 'allow',
-                rule   => 'PhabricatorSubscriptionsSubscribersPolicyRule',
-            }
-        ]
-    };
+  my $data = {
+    objectType => 'DREV',
+    default    => 'deny',
+    policy =>
+      [{action => 'allow', rule => 'PhabricatorSubscriptionsSubscribersPolicyRule',
+      }]
+  };
 
-    if (@$project_names) {
-        my $project_phids = [];
-        foreach my $project_name (@$project_names) {
-            my $project = Bugzilla::Extension::PhabBugz::Project->new_from_query({ name => $project_name });
-            push @$project_phids, $project->phid if $project;
-        }
-
-        ThrowUserError('invalid_phabricator_sync_groups') unless @$project_phids;
-
-        push @{ $data->{policy} }, {
-            action => 'allow',
-            rule   => 'PhabricatorProjectsPolicyRule',
-            value  => $project_phids,
-        };
-    }
-    else {
-        my $secure_revision = Bugzilla::Extension::PhabBugz::Project->new_from_query({
-            name => 'secure-revision'
-        });
-        push @{ $data->{policy} }, { action => 'allow', value  => $secure_revision->phid };
+  if (@$project_names) {
+    my $project_phids = [];
+    foreach my $project_name (@$project_names) {
+      my $project = Bugzilla::Extension::PhabBugz::Project->new_from_query(
+        {name => $project_name});
+      push @$project_phids, $project->phid if $project;
     }
 
-    my $result = request('policy.create', $data);
-    return $class->new_from_query({ phids => [ $result->{result}{phid} ] });
+    ThrowUserError('invalid_phabricator_sync_groups') unless @$project_phids;
+
+    push @{$data->{policy}},
+      {
+      action => 'allow',
+      rule   => 'PhabricatorProjectsPolicyRule',
+      value  => $project_phids,
+      };
+  }
+  else {
+    my $secure_revision
+      = Bugzilla::Extension::PhabBugz::Project->new_from_query({
+      name => 'secure-revision'
+      });
+    push @{$data->{policy}}, {action => 'allow', value => $secure_revision->phid};
+  }
+
+  my $result = request('policy.create', $data);
+  return $class->new_from_query({phids => [$result->{result}{phid}]});
 }
 
 sub _build_rule_projects {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    return [] unless $self->rules;
-    my $rule = first { $_->{rule} eq 'PhabricatorProjectsPolicyRule'} @{ $self->rules };
-    return [] unless $rule;
-    return [
-        map  { $_->name }
-        grep { $_ }
-        map  { Bugzilla::Extension::PhabBugz::Project->new_from_query( { phids => [$_] } ) }
-        @{ $rule->{value} }
-    ];
+  return [] unless $self->rules;
+  my $rule
+    = first { $_->{rule} eq 'PhabricatorProjectsPolicyRule' } @{$self->rules};
+  return [] unless $rule;
+  return [
+    map { $_->name } grep {$_} map {
+      Bugzilla::Extension::PhabBugz::Project->new_from_query({phids => [$_]})
+    } @{$rule->{value}}
+  ];
 }
 
 1;

@@ -26,112 +26,118 @@ use constant is_automatic            => 1;
 use constant user_can_create_account => 1;
 
 sub get_login_info {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my $cgi = Bugzilla->cgi;
+  my $cgi = Bugzilla->cgi;
 
-    my $assertion = $cgi->param("persona_assertion");
-    # Avoid the assertion being copied into any 'echoes' of the current URL
-    # in the page.
-    $cgi->delete('persona_assertion');
+  my $assertion = $cgi->param("persona_assertion");
 
-    if (!$assertion || !Bugzilla->params->{persona_verify_url}) {
-        return { failure => AUTH_NODATA };
-    }
+  # Avoid the assertion being copied into any 'echoes' of the current URL
+  # in the page.
+  $cgi->delete('persona_assertion');
 
-    my $token = $cgi->param("token");
-    $cgi->delete('token');
-    check_hash_token($token, ['login']);
+  if (!$assertion || !Bugzilla->params->{persona_verify_url}) {
+    return {failure => AUTH_NODATA};
+  }
 
-    my $urlbase = new URI(Bugzilla->localconfig->{urlbase});
-    my $audience = $urlbase->scheme . "://" . $urlbase->host_port;
+  my $token = $cgi->param("token");
+  $cgi->delete('token');
+  check_hash_token($token, ['login']);
 
-    my $ua = new LWP::UserAgent( timeout => 10 );
-    if (Bugzilla->params->{persona_proxy_url}) {
-        $ua->proxy('https', Bugzilla->params->{persona_proxy_url});
-    }
+  my $urlbase  = new URI(Bugzilla->localconfig->{urlbase});
+  my $audience = $urlbase->scheme . "://" . $urlbase->host_port;
 
-    my $response = $ua->post(Bugzilla->params->{persona_verify_url},
-                             [ assertion => $assertion,
-                               audience  => $audience ]);
-    if ($response->is_error) {
-        return { failure    => AUTH_ERROR,
-                 user_error => 'persona_server_fail',
-                 details    => { reason => $response->message }};
-    }
+  my $ua = new LWP::UserAgent(timeout => 10);
+  if (Bugzilla->params->{persona_proxy_url}) {
+    $ua->proxy('https', Bugzilla->params->{persona_proxy_url});
+  }
 
-    my $info;
-    eval {
-        $info = decode_json($response->decoded_content());
+  my $response = $ua->post(
+    Bugzilla->params->{persona_verify_url},
+    [assertion => $assertion, audience => $audience]
+  );
+  if ($response->is_error) {
+    return {
+      failure    => AUTH_ERROR,
+      user_error => 'persona_server_fail',
+      details    => {reason => $response->message}
     };
-    if ($@) {
-        return { failure    => AUTH_ERROR,
-                 user_error => 'persona_server_fail',
-                 details    => { reason => 'Received a malformed response.' }};
+  }
+
+  my $info;
+  eval { $info = decode_json($response->decoded_content()); };
+  if ($@) {
+    return {
+      failure    => AUTH_ERROR,
+      user_error => 'persona_server_fail',
+      details    => {reason => 'Received a malformed response.'}
+    };
+  }
+  if ($info->{'status'} eq 'failure') {
+    return {
+      failure    => AUTH_ERROR,
+      user_error => 'persona_server_fail',
+      details    => {reason => $info->{reason}}
+    };
+  }
+
+  if ( $info->{'status'} eq "okay"
+    && $info->{'audience'} eq $audience
+    && ($info->{'expires'} / 1000) > time())
+  {
+    my $login_data = {'username' => $info->{'email'}};
+
+    my $result = Bugzilla::Auth::Verify->create_or_update_user($login_data);
+    return $result if $result->{'failure'};
+
+    my $user = $result->{'user'};
+
+    # You can restrict people in a particular group from logging in using
+    # Persona by making that group a member of a group called
+    # "no-browser-id".
+    #
+    # If you have your "createemailregexp" set up in such a way that a
+    # newly-created account is a member of "no-browser-id", this code will
+    # create an account for them and then fail their login. Which isn't
+    # great, but they can still use normal-Bugzilla-login password
+    # recovery.
+    if ($user->in_group('no-browser-id')) {
+      return {failure => AUTH_ERROR, user_error => 'persona_account_too_powerful'};
     }
-    if ($info->{'status'} eq 'failure') {
-        return { failure    => AUTH_ERROR,
-                 user_error => 'persona_server_fail',
-                 details    => { reason => $info->{reason} }};
+
+    if ($user->mfa) {
+      return {
+        failure    => AUTH_ERROR,
+        user_error => 'mfa_prevents_login',
+        details    => {provider => 'Persona'}
+      };
     }
 
-    if ($info->{'status'} eq "okay" &&
-        $info->{'audience'} eq $audience &&
-        ($info->{'expires'} / 1000) > time())
-    {
-        my $login_data = {
-            'username' => $info->{'email'}
-        };
+    $login_data->{'user'}    = $user;
+    $login_data->{'user_id'} = $user->id;
 
-        my $result = Bugzilla::Auth::Verify->create_or_update_user($login_data);
-        return $result if $result->{'failure'};
-
-        my $user = $result->{'user'};
-
-        # You can restrict people in a particular group from logging in using
-        # Persona by making that group a member of a group called
-        # "no-browser-id".
-        #
-        # If you have your "createemailregexp" set up in such a way that a
-        # newly-created account is a member of "no-browser-id", this code will
-        # create an account for them and then fail their login. Which isn't
-        # great, but they can still use normal-Bugzilla-login password
-        # recovery.
-        if ($user->in_group('no-browser-id')) {
-            return { failure    => AUTH_ERROR,
-                     user_error => 'persona_account_too_powerful' };
-        }
-
-        if ($user->mfa) {
-            return { failure    => AUTH_ERROR,
-                     user_error => 'mfa_prevents_login',
-                     details    => { provider => 'Persona' } };
-        }
-
-        $login_data->{'user'} = $user;
-        $login_data->{'user_id'} = $user->id;
-
-        return $login_data;
-    }
-    else {
-        return { failure => AUTH_LOGINFAILED };
-    }
+    return $login_data;
+  }
+  else {
+    return {failure => AUTH_LOGINFAILED};
+  }
 }
 
 # Pinched from Bugzilla::Auth::Login::CGI
 sub fail_nodata {
-    my ($self) = @_;
-    my $cgi = Bugzilla->cgi;
-    my $template = Bugzilla->template;
+  my ($self)   = @_;
+  my $cgi      = Bugzilla->cgi;
+  my $template = Bugzilla->template;
 
-    if (Bugzilla->usage_mode != USAGE_MODE_BROWSER) {
-        ThrowUserError('login_required');
-    }
+  if (Bugzilla->usage_mode != USAGE_MODE_BROWSER) {
+    ThrowUserError('login_required');
+  }
 
-    print $cgi->header();
-    $template->process("account/auth/login.html.tmpl", { 'target' => $cgi->url(-relative=>1) })
-        || ThrowTemplateError($template->error());
-    exit;
+  print $cgi->header();
+  $template->process("account/auth/login.html.tmpl",
+    {'target' => $cgi->url(-relative => 1)})
+    || ThrowTemplateError($template->error());
+  exit;
 }
 
 1;

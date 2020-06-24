@@ -23,29 +23,29 @@ warn "Bugzilla::ModPerl::StartupFix: Skipping first startup using source filter\
 CODE
 
 sub import {
-    my ($class) = @_;
-    my ($ref)  = {};
-    filter_add( bless $ref, $class );
+  my ($class) = @_;
+  my ($ref)   = {};
+  filter_add(bless $ref, $class);
 }
 
 # this will be called for each line.
 # For the first line replaced, we insert $FIRST_STARTUP.
 # Every subsequent line is replaced with an empty string.
 sub filter {
-    my ($self) = @_;
-    my ($status);
-    if ($status = filter_read() > 0) {
-        if (Apache2::ServerUtil::restart_count() < 2) {
-            if (!$self->{did_it}) {
-                $self->{did_it} = 1;
-                $_ = $FIRST_STARTUP;
-            }
-            else {
-                $_ = "";
-            }
-        }
+  my ($self) = @_;
+  my ($status);
+  if ($status = filter_read() > 0) {
+    if (Apache2::ServerUtil::restart_count() < 2) {
+      if (!$self->{did_it}) {
+        $self->{did_it} = 1;
+        $_ = $FIRST_STARTUP;
+      }
+      else {
+        $_ = "";
+      }
     }
-    return $status;
+  }
+  return $status;
 }
 
 1;

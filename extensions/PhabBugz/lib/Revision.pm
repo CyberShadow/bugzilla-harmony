@@ -26,90 +26,86 @@ use Bugzilla::Extension::PhabBugz::Util qw(
 #    Initialization     #
 #########################
 
-has id               => ( is => 'ro',   isa => Int );
-has phid             => ( is => 'ro',   isa => Str );
-has title            => ( is => 'ro',   isa => Str );
-has status           => ( is => 'ro',   isa => Str );
-has creation_ts      => ( is => 'ro',   isa => Str );
-has modification_ts  => ( is => 'ro',   isa => Str );
-has author_phid      => ( is => 'ro',   isa => Str );
-has bug_id           => ( is => 'ro',   isa => Str );
-has view_policy      => ( is => 'ro',   isa => Str );
-has edit_policy      => ( is => 'ro',   isa => Str );
-has projects_raw     => ( is => 'ro',   isa => ArrayRef [Str] );
-has subscriber_count => ( is => 'ro',   isa => Int );
-has bug              => ( is => 'lazy', isa => Object );
-has author           => ( is => 'lazy', isa => Object );
-has reviewers        => ( is => 'lazy', isa => ArrayRef [Object] );
-has subscribers      => ( is => 'lazy', isa => ArrayRef [Object] );
+has id               => (is => 'ro',   isa => Int);
+has phid             => (is => 'ro',   isa => Str);
+has title            => (is => 'ro',   isa => Str);
+has status           => (is => 'ro',   isa => Str);
+has creation_ts      => (is => 'ro',   isa => Str);
+has modification_ts  => (is => 'ro',   isa => Str);
+has author_phid      => (is => 'ro',   isa => Str);
+has bug_id           => (is => 'ro',   isa => Str);
+has view_policy      => (is => 'ro',   isa => Str);
+has edit_policy      => (is => 'ro',   isa => Str);
+has projects_raw     => (is => 'ro',   isa => ArrayRef [Str]);
+has subscriber_count => (is => 'ro',   isa => Int);
+has bug              => (is => 'lazy', isa => Object);
+has author           => (is => 'lazy', isa => Object);
+has reviewers        => (is => 'lazy', isa => ArrayRef [Object]);
+has subscribers      => (is => 'lazy', isa => ArrayRef [Object]);
 has reviewers_raw => (
-    is  => 'ro',
-    isa => ArrayRef [
-        Dict [
-            reviewerPHID => Str,
-            status       => Str,
-            isBlocking   => Bool,
-            actorPHID    => Maybe [Str],
-        ],
-    ]
+  is  => 'ro',
+  isa => ArrayRef [
+    Dict [
+      reviewerPHID => Str,
+      status       => Str,
+      isBlocking   => Bool,
+      actorPHID    => Maybe [Str],
+    ],
+  ]
 );
 has subscribers_raw => (
-    is  => 'ro',
-    isa => Dict [
-        subscriberPHIDs => ArrayRef [Str],
-        subscriberCount => Int,
-        viewerIsSubscribed => Bool,
-    ]
+  is  => 'ro',
+  isa => Dict [
+    subscriberPHIDs    => ArrayRef [Str],
+    subscriberCount    => Int,
+    viewerIsSubscribed => Bool,
+  ]
 );
 
 sub new_from_query {
-    my ( $class, $params ) = @_;
+  my ($class, $params) = @_;
 
-    my $data = {
-        queryKey    => 'all',
-        attachments => {
-            projects    => 1,
-            reviewers   => 1,
-            subscribers => 1
-        },
-        constraints => $params
-    };
+  my $data = {
+    queryKey    => 'all',
+    attachments => {projects => 1, reviewers => 1, subscribers => 1},
+    constraints => $params
+  };
 
-    my $result = request( 'differential.revision.search', $data );
-    if ( exists $result->{result}{data} && @{ $result->{result}{data} } ) {
-        $result = $result->{result}{data}[0];
+  my $result = request('differential.revision.search', $data);
+  if (exists $result->{result}{data} && @{$result->{result}{data}}) {
+    $result = $result->{result}{data}[0];
 
-        # Some values in Phabricator for bug ids may have been saved
-        # white whitespace so we remove any here just in case.
-        $result->{fields}->{'bugzilla.bug-id'} =
-          $result->{fields}->{'bugzilla.bug-id'}
-          ? trim( $result->{fields}->{'bugzilla.bug-id'} )
-          : "";
-        return $class->new($result);
-    }
+    # Some values in Phabricator for bug ids may have been saved
+    # white whitespace so we remove any here just in case.
+    $result->{fields}->{'bugzilla.bug-id'}
+      = $result->{fields}->{'bugzilla.bug-id'}
+      ? trim($result->{fields}->{'bugzilla.bug-id'})
+      : "";
+    return $class->new($result);
+  }
 }
 
 sub BUILDARGS {
-    my ( $class, $params ) = @_;
+  my ($class, $params) = @_;
 
-    $params->{title}           = $params->{fields}->{title};
-    $params->{status}          = $params->{fields}->{status}->{value};
-    $params->{creation_ts}     = $params->{fields}->{dateCreated};
-    $params->{modification_ts} = $params->{fields}->{dateModified};
-    $params->{author_phid}     = $params->{fields}->{authorPHID};
-    $params->{bug_id}          = $params->{fields}->{'bugzilla.bug-id'};
-    $params->{view_policy}     = $params->{fields}->{policy}->{view};
-    $params->{edit_policy}     = $params->{fields}->{policy}->{edit};
-    $params->{reviewers_raw} = $params->{attachments}->{reviewers}->{reviewers};
-    $params->{subscribers_raw} = $params->{attachments}->{subscribers};
-    $params->{projects}        = $params->{attachments}->{projects};
-    $params->{subscriber_count} =
-      $params->{attachments}->{subscribers}->{subscriberCount};
+  $params->{title}           = $params->{fields}->{title};
+  $params->{status}          = $params->{fields}->{status}->{value};
+  $params->{creation_ts}     = $params->{fields}->{dateCreated};
+  $params->{modification_ts} = $params->{fields}->{dateModified};
+  $params->{author_phid}     = $params->{fields}->{authorPHID};
+  $params->{bug_id}          = $params->{fields}->{'bugzilla.bug-id'};
+  $params->{view_policy}     = $params->{fields}->{policy}->{view};
+  $params->{edit_policy}     = $params->{fields}->{policy}->{edit};
+  $params->{reviewers_raw}   = $params->{attachments}->{reviewers}->{reviewers};
+  $params->{subscribers_raw} = $params->{attachments}->{subscribers};
+  $params->{projects}        = $params->{attachments}->{projects};
+  $params->{subscriber_count}
+    = $params->{attachments}->{subscribers}->{subscriberCount};
 
-    delete $params->{fields};
-    delete $params->{attachments};
+  delete $params->{fields};
+  delete $params->{attachments};
 
-    return $params;
+  return $params;
 }
 
 # {
@@ -174,99 +170,71 @@ sub BUILDARGS {
 #########################
 
 sub update {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    my $data = {
-        objectIdentifier => $self->phid,
-        transactions     => []
-    };
+  my $data = {objectIdentifier => $self->phid, transactions => []};
 
-    if ( $self->{added_comments} ) {
-        foreach my $comment ( @{ $self->{added_comments} } ) {
-            push @{ $data->{transactions} },
-              {
-                type  => 'comment',
-                value => $comment
-              };
-        }
+  if ($self->{added_comments}) {
+    foreach my $comment (@{$self->{added_comments}}) {
+      push @{$data->{transactions}}, {type => 'comment', value => $comment};
     }
+  }
 
-    if ( $self->{set_subscribers} ) {
-        push @{ $data->{transactions} },
-          {
-            type  => 'subscribers.set',
-            value => $self->{set_subscribers}
-          };
+  if ($self->{set_subscribers}) {
+    push @{$data->{transactions}},
+      {type => 'subscribers.set', value => $self->{set_subscribers}};
+  }
+
+  if ($self->{add_subscribers}) {
+    push @{$data->{transactions}},
+      {type => 'subscribers.add', value => $self->{add_subscribers}};
+  }
+
+  if ($self->{remove_subscribers}) {
+    push @{$data->{transactions}},
+      {type => 'subscribers.remove', value => $self->{remove_subscribers}};
+  }
+
+  if ($self->{set_reviewers}) {
+    push @{$data->{transactions}},
+      {type => 'reviewers.set', value => $self->{set_reviewers}};
+  }
+
+  if ($self->{add_reviewers}) {
+    push @{$data->{transactions}},
+      {type => 'reviewers.add', value => $self->{add_reviewers}};
+  }
+
+  if ($self->{remove_reviewers}) {
+    push @{$data->{transactions}},
+      {type => 'reviewers.remove', value => $self->{remove_reviewers}};
+  }
+
+  if ($self->{set_policy}) {
+    foreach my $name ("view", "edit") {
+      next unless $self->{set_policy}->{$name};
+      push @{$data->{transactions}},
+        {type => $name, value => $self->{set_policy}->{$name}};
     }
+  }
 
-    if ( $self->{add_subscribers} ) {
-        push @{ $data->{transactions} },
-          {
-            type  => 'subscribers.add',
-            value => $self->{add_subscribers}
-          };
-    }
+  if ($self->{add_projects}) {
+    push(
+      @{$data->{transactions}},
+      {type => 'projects.add', value => $self->{add_projects}}
+    );
+  }
 
-    if ( $self->{remove_subscribers} ) {
-        push @{ $data->{transactions} },
-          {
-            type  => 'subscribers.remove',
-            value => $self->{remove_subscribers}
-          };
-    }
+  if ($self->{remove_projects}) {
+    push(
+      @{$data->{transactions}},
+      {type => 'projects.remove', value => $self->{remove_projects}}
+    );
+  }
 
-    if ( $self->{set_reviewers} ) {
-        push @{ $data->{transactions} },
-          {
-            type  => 'reviewers.set',
-            value => $self->{set_reviewers}
-          };
-    }
+  my $result = request('differential.revision.edit', $data);
 
-    if ( $self->{add_reviewers} ) {
-        push @{ $data->{transactions} },
-          {
-            type  => 'reviewers.add',
-            value => $self->{add_reviewers}
-          };
-    }
-
-    if ( $self->{remove_reviewers} ) {
-        push @{ $data->{transactions} },
-          {
-            type  => 'reviewers.remove',
-            value => $self->{remove_reviewers}
-          };
-    }
-
-    if ( $self->{set_policy} ) {
-        foreach my $name ( "view", "edit" ) {
-            next unless $self->{set_policy}->{$name};
-            push @{ $data->{transactions} },
-              {
-                type  => $name,
-                value => $self->{set_policy}->{$name}
-              };
-        }
-    }
-
-    if ($self->{add_projects}) {
-        push(@{ $data->{transactions} }, {
-            type => 'projects.add',
-            value => $self->{add_projects}
-        });
-    }
-
-    if ($self->{remove_projects}) {
-        push(@{ $data->{transactions} }, {
-            type => 'projects.remove',
-            value => $self->{remove_projects}
-        });
-    }
-
-    my $result = request( 'differential.revision.edit', $data );
-
-    return $result;
+  return $result;
 }
 
 #########################
@@ -274,78 +242,75 @@ sub update {
 #########################
 
 sub _build_bug {
-    my ($self) = @_;
-    return $self->{bug} ||=
-      Bugzilla::Bug->new( { id => $self->bug_id, cache => 1 } );
+  my ($self) = @_;
+  return $self->{bug} ||= Bugzilla::Bug->new({id => $self->bug_id, cache => 1});
 }
 
 sub _build_author {
-    my ($self) = @_;
-    return $self->{author} if $self->{author};
-    my $users = get_phab_bmo_ids( { phids => [ $self->author_phid ] } );
-    if (@$users) {
-        $self->{author} =
-          new Bugzilla::User( { id => $users->[0]->{id}, cache => 1 } );
-        $self->{author}->{phab_phid} = $self->author_phid;
-        return $self->{author};
-    }
+  my ($self) = @_;
+  return $self->{author} if $self->{author};
+  my $users = get_phab_bmo_ids({phids => [$self->author_phid]});
+  if (@$users) {
+    $self->{author} = new Bugzilla::User({id => $users->[0]->{id}, cache => 1});
+    $self->{author}->{phab_phid} = $self->author_phid;
+    return $self->{author};
+  }
 }
 
 sub _build_reviewers {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    return $self->{reviewers} if $self->{reviewers};
-    return [] unless $self->reviewers_raw;
+  return $self->{reviewers} if $self->{reviewers};
+  return [] unless $self->reviewers_raw;
 
-    my @phids;
-    foreach my $reviewer ( @{ $self->reviewers_raw } ) {
-        push @phids, $reviewer->{reviewerPHID};
+  my @phids;
+  foreach my $reviewer (@{$self->reviewers_raw}) {
+    push @phids, $reviewer->{reviewerPHID};
+  }
+
+  return [] unless @phids;
+
+  my $users = get_phab_bmo_ids({phids => \@phids});
+
+  my @reviewers;
+  foreach my $user (@$users) {
+    my $reviewer = Bugzilla::User->new({id => $user->{id}, cache => 1});
+    $reviewer->{phab_phid} = $user->{phid};
+    foreach my $reviewer_data (@{$self->reviewers_raw}) {
+      if ($reviewer_data->{reviewerPHID} eq $user->{phid}) {
+        $reviewer->{phab_review_status} = $reviewer_data->{status};
+        last;
+      }
     }
+    push @reviewers, $reviewer;
+  }
 
-    return [] unless @phids;
-
-    my $users = get_phab_bmo_ids( { phids => \@phids } );
-
-    my @reviewers;
-    foreach my $user (@$users) {
-        my $reviewer = Bugzilla::User->new( { id => $user->{id}, cache => 1 } );
-        $reviewer->{phab_phid} = $user->{phid};
-        foreach my $reviewer_data ( @{ $self->reviewers_raw } ) {
-            if ( $reviewer_data->{reviewerPHID} eq $user->{phid} ) {
-                $reviewer->{phab_review_status} = $reviewer_data->{status};
-                last;
-            }
-        }
-        push @reviewers, $reviewer;
-    }
-
-    return \@reviewers;
+  return \@reviewers;
 }
 
 sub _build_subscribers {
-    my ($self) = @_;
+  my ($self) = @_;
 
-    return $self->{subscribers} if $self->{subscribers};
-    return [] unless $self->subscribers_raw->{subscriberPHIDs};
+  return $self->{subscribers} if $self->{subscribers};
+  return [] unless $self->subscribers_raw->{subscriberPHIDs};
 
-    my @phids;
-    foreach my $phid ( @{ $self->subscribers_raw->{subscriberPHIDs} } ) {
-        push @phids, $phid;
-    }
+  my @phids;
+  foreach my $phid (@{$self->subscribers_raw->{subscriberPHIDs}}) {
+    push @phids, $phid;
+  }
 
-    my $users = get_phab_bmo_ids( { phids => \@phids } );
+  my $users = get_phab_bmo_ids({phids => \@phids});
 
-    return [] unless @phids;
+  return [] unless @phids;
 
-    my @subscribers;
-    foreach my $user (@$users) {
-        my $subscriber =
-          Bugzilla::User->new( { id => $user->{id}, cache => 1 } );
-        $subscriber->{phab_phid} = $user->{phid};
-        push @subscribers, $subscriber;
-    }
+  my @subscribers;
+  foreach my $user (@$users) {
+    my $subscriber = Bugzilla::User->new({id => $user->{id}, cache => 1});
+    $subscriber->{phab_phid} = $user->{phid};
+    push @subscribers, $subscriber;
+  }
 
-    return \@subscribers;
+  return \@subscribers;
 }
 
 #########################
@@ -353,72 +318,72 @@ sub _build_subscribers {
 #########################
 
 sub add_comment {
-    my ( $self, $comment ) = @_;
-    $comment = trim($comment);
-    $self->{added_comments} ||= [];
-    push @{ $self->{added_comments} }, $comment;
+  my ($self, $comment) = @_;
+  $comment = trim($comment);
+  $self->{added_comments} ||= [];
+  push @{$self->{added_comments}}, $comment;
 }
 
 sub add_reviewer {
-    my ( $self, $reviewer ) = @_;
-    $self->{add_reviewers} ||= [];
-    my $reviewer_phid = blessed $reviewer ? $reviewer->phab_phid : $reviewer;
-    push @{ $self->{add_reviewers} }, $reviewer_phid;
+  my ($self, $reviewer) = @_;
+  $self->{add_reviewers} ||= [];
+  my $reviewer_phid = blessed $reviewer ? $reviewer->phab_phid : $reviewer;
+  push @{$self->{add_reviewers}}, $reviewer_phid;
 }
 
 sub remove_reviewer {
-    my ( $self, $reviewer ) = @_;
-    $self->{remove_reviewers} ||= [];
-    my $reviewer_phid = blessed $reviewer ? $reviewer->phab_phid : $reviewer;
-    push @{ $self->{remove_reviewers} }, $reviewer_phid;
+  my ($self, $reviewer) = @_;
+  $self->{remove_reviewers} ||= [];
+  my $reviewer_phid = blessed $reviewer ? $reviewer->phab_phid : $reviewer;
+  push @{$self->{remove_reviewers}}, $reviewer_phid;
 }
 
 sub set_reviewers {
-    my ( $self, $reviewers ) = @_;
-    $self->{set_reviewers} = [ map { $_->phab_phid } @$reviewers ];
+  my ($self, $reviewers) = @_;
+  $self->{set_reviewers} = [map { $_->phab_phid } @$reviewers];
 }
 
 sub add_subscriber {
-    my ( $self, $subscriber ) = @_;
-    $self->{add_subscribers} ||= [];
-    my $subscriber_phid =
-      blessed $subscriber ? $subscriber->phab_phid : $subscriber;
-    push @{ $self->{add_subscribers} }, $subscriber_phid;
+  my ($self, $subscriber) = @_;
+  $self->{add_subscribers} ||= [];
+  my $subscriber_phid
+    = blessed $subscriber ? $subscriber->phab_phid : $subscriber;
+  push @{$self->{add_subscribers}}, $subscriber_phid;
 }
 
 sub remove_subscriber {
-    my ( $self, $subscriber ) = @_;
-    $self->{remove_subscribers} ||= [];
-    my $subscriber_phid =
-      blessed $subscriber ? $subscriber->phab_phid : $subscriber;
-    push @{ $self->{remove_subscribers} }, $subscriber_phid;
+  my ($self, $subscriber) = @_;
+  $self->{remove_subscribers} ||= [];
+  my $subscriber_phid
+    = blessed $subscriber ? $subscriber->phab_phid : $subscriber;
+  push @{$self->{remove_subscribers}}, $subscriber_phid;
 }
 
 sub set_subscribers {
-    my ( $self, $subscribers ) = @_;
-    $self->{set_subscribers} = $subscribers;
+  my ($self, $subscribers) = @_;
+  $self->{set_subscribers} = $subscribers;
 }
 
 sub set_policy {
-    my ( $self, $name, $policy ) = @_;
-    $self->{set_policy} ||= {};
-    $self->{set_policy}->{$name} = $policy;
+  my ($self, $name, $policy) = @_;
+  $self->{set_policy} ||= {};
+  $self->{set_policy}->{$name} = $policy;
 }
 
 sub add_project {
-    my ( $self, $project ) = @_;
-    $self->{add_projects} ||= [];
-    my $project_phid = blessed $project ? $project->phid : $project;
-    return undef unless $project_phid;
-    push @{ $self->{add_projects} }, $project_phid;
+  my ($self, $project) = @_;
+  $self->{add_projects} ||= [];
+  my $project_phid = blessed $project ? $project->phid : $project;
+  return undef unless $project_phid;
+  push @{$self->{add_projects}}, $project_phid;
 }
 
 sub remove_project {
-    my ( $self, $project ) = @_;
-    $self->{remove_projects} ||= [];
-    my $project_phid = blessed $project ? $project->phid : $project;
-    return undef unless $project_phid;
-    push @{ $self->{remove_projects} }, $project_phid;
+  my ($self, $project) = @_;
+  $self->{remove_projects} ||= [];
+  my $project_phid = blessed $project ? $project->phid : $project;
+  return undef unless $project_phid;
+  push @{$self->{remove_projects}}, $project_phid;
 }
 
 1;

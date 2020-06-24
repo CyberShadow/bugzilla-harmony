@@ -13,15 +13,9 @@ use warnings;
 
 use constant NAME => 'Persona';
 
-use constant REQUIRED_MODULES => [
-    {
-        package => 'JSON',
-        module  => 'JSON',
-        version => 0,
-    },
-];
+use constant REQUIRED_MODULES =>
+  [{package => 'JSON', module => 'JSON', version => 0,},];
 
-use constant OPTIONAL_MODULES => [
-];
+use constant OPTIONAL_MODULES => [];
 
 __PACKAGE__->NAME;

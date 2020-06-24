@@ -14,11 +14,11 @@ use warnings;
 use base 'Bugzilla::Template';
 
 sub process {
-    my $self = shift;
-    Bugzilla->metrics->template_start($_[0]);
-    my $result = $self->SUPER::process(@_);
-    Bugzilla->metrics->end();
-    return $result;
+  my $self = shift;
+  Bugzilla->metrics->template_start($_[0]);
+  my $result = $self->SUPER::process(@_);
+  Bugzilla->metrics->end();
+  return $result;
 }
 
 1;
