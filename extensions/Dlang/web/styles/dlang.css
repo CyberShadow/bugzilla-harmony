@@ -1,11 +1,14 @@
-body.dlang {
-	background: #F5F5F5;
+@media not screen and (prefers-color-scheme: dark) {
+	:root {
+		--application-background-color: #F5F5F5;
+	}
 }
 
 body.dlang #header {
 	background-color: #B03931;
 }
-body.dlang #header a {
+body.dlang #header > div > nav > ul > li > a,
+body.dlang #header > div > h1 > a {
 	color: white;
 }
 body.dlang #header a .icon,
@@ -14,6 +17,13 @@ body.dlang #header button .icon {
 }
 body.dlang #header #quicksearch_top {
 	background-color: white;
+	color: black;
+}
+@media screen and (prefers-color-scheme: dark) {
+	body.dlang #header #quicksearch_top {
+		background-color: #802A24;
+		color: white;
+	}
 }
 
 body.dlang #header .inner {
