@@ -6,6 +6,7 @@
 
 body.dlang #header {
 	background-color: #B03931;
+	height: auto;
 }
 body.dlang #header > div > nav > ul > li > a,
 body.dlang #header > div > h1 > a {
