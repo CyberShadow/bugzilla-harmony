@@ -244,20 +244,6 @@ sub new_product {
     $version->{selected} = $true;
     $selected_version = $version;
   }
-  elsif ($current_version =~ /^(\d+) Branch$/
-    || $current_version =~ /^Firefox (\d+)$/
-    || $current_version =~ /^(\d+)$/)
-  {
-    # Firefox, with its three version naming schemes
-    my $branch = $1;
-    foreach my $test_version ("$branch Branch", "Firefox $branch", $branch) {
-      if (my $version = first_value { $_->{name} eq $test_version } @$versions) {
-        $version->{selected} = $true;
-        $selected_version = $version;
-        last;
-      }
-    }
-  }
   if (!$selected_version) {
 
     # "unspecified", "other"
