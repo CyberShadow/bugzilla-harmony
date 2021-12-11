@@ -100,7 +100,10 @@ if (defined $switch{cpanm}) {
     }
   }
   print "cpanm @cpanm_args \".\"\n" if !$silent;
+  # Ensure cpanm uses MYMETA.json and not cpanfile, in order to correctly resolve features' dependencies
+  rename('cpanfile', 'cpanfile.checksetup');
   my $rv = system('cpanm', @cpanm_args, '.');
+  rename('cpanfile.checksetup', 'cpanfile');
   exit 1 if $rv != 0;
 }
 
